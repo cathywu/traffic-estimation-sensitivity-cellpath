@@ -63,8 +63,6 @@ def generate_data_UE(data=None, export=False, SO=False, demand=3, N=30,
             'T': to_sp(T), 'd': array(d), 'U': to_sp(U), 'f': array(f),
             'cell_pos' : cell_pos}
 
-    ipdb.set_trace()
-
     if NLP is not None:
         lp = LinkPath(graph,x_true,N=NLP)
         lp.update_lp_flows()
