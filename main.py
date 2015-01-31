@@ -11,6 +11,7 @@ from isttt2014_experiments import synthetic_data
 import path_solver
 import Waypoints as WP
 from linkpath import LinkPath
+from HighwayNetwork import HighwayNetwork
 
 def sample_paths(paths, start_pos, end_pos, free_flow_travel_time, m=2):
     paths_sampled = []
@@ -101,6 +102,7 @@ def scenario(params=None, log='INFO'):
     # TODO trials?
     data, graph = generate_data_UE(data=config, SO=SO, NLP=args.NLP)
     paths_sampled = generate_sampled_UE(graph,m=2)
+    HN = HighwayNetwork(data['cell_pos'], data['x_true'], paths_sampled, 100, 10)
     if 'error' in data:
         return {'error' : data['error']}
 

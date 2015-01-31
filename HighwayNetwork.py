@@ -18,7 +18,8 @@ def weighted_choice(weights):
 
 class HighwayNetwork:
 
-  def __init__(self, cellPositions, flows, routes, numCars, numDelays, tlimit=None, spread=0, inertia=0, balancing=0):
+  def __init__(self, cellPositions, flows, routes, numCars, numDelays,
+               tlimit=None, spread=0, inertia=0, balancing=0):
     # spread : random network interference degrading signal strength
     self.spread = spread
     # inertia : preference for an individual car to stay on the same tower
@@ -142,7 +143,8 @@ if __name__ == "__main__":
     minx = min(x)
     miny = min(y)
     for i in xrange(numCellTowers):
-      cellPositions.append((minx + random() * (maxx - minx), miny + random() * (maxy - miny)))
+      cellPositions.append((minx + random() * (maxx - minx), miny + random() * \
+                            (maxy - miny)))
 
   """
   Simulation
