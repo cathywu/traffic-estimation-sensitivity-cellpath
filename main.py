@@ -45,7 +45,7 @@ def generate_sampled_UE(g,m=2):
     start_pos, end_pos = g.get_links()
     free_flow_travel_time = array(g.get_ffdelays())
     paths_sampled = sample_paths(paths, start_pos, end_pos, free_flow_travel_time, m=2)
-    return paths_sampled, paths
+    return paths_sampled
 
 def generate_data_UE(data=None, export=False, SO=False, demand=3, N=30,
                           withODs=False, NLP=122):
@@ -84,7 +84,7 @@ def generate_data_UE(data=None, export=False, SO=False, demand=3, N=30,
 
     return data, graph, wp_trajs
 
-def scenario(params=None, vanilla=False, num_cars=100, num_delays=10, tlimit=100):
+def scenario(params=None, noisy=False, num_cars=100, num_delays=10, tlimit=100):
     # use argparse object as default template
     p = parser()
     args = p.parse_args()
@@ -105,15 +105,15 @@ def scenario(params=None, vanilla=False, num_cars=100, num_delays=10, tlimit=100
     # data[4] = (1, 3, 0.2, [((3.5, 0.5, 6.5, 3.0), 1)], (2,2), 2.0)
     # TODO trials?
     data, graph, wp_trajs = generate_data_UE(data=config, SO=SO, NLP=args.NLP)
-    if vanilla is False:
+    if noisy is True:
         paths_sampled = generate_sampled_UE(graph,m=2)
-        ipdb.set_trace()
         cp, cp_paths, cp_flow = zip(*wp_trajs)
+        cp = [tuple(cpp) for cpp in cp]
         HN = HighwayNetwork(data['cell_pos'], data['x_true'], paths_sampled)
         f, rest = HN.go(num_cars, num_delays, tlimit=tlimit, cellpaths=cp)
 
         # Replace f with new noisy f
-        data['f'] = f
+        data['f'] = array(f)
 
     if 'error' in data:
         return {'error' : data['error']}
@@ -122,11 +122,11 @@ def scenario(params=None, vanilla=False, num_cars=100, num_delays=10, tlimit=100
     if args.solver == 'LS':
         output = experiment_LS(args, full=args.all_links, init=args.init,
                                L=args.use_L, OD=args.use_OD, CP=args.use_CP,
-                               LP=args.use_LP, eq=eq, data=data)
+                               LP=args.use_LP, eq=eq, data=data, noisy=noisy)
     elif args.solver == 'LSQR':
         output = experiment_LSQR(args, full=args.all_links, L=args.use_L,
                                  OD=args.use_OD, CP=args.use_CP, LP=args.use_LP,
-                                 data=data)
+                                 data=data, noisy=noisy)
 
     if args.output == True:
         pprint(output)

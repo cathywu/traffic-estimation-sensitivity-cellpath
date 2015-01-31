@@ -122,7 +122,7 @@ def update_args(args, params):
     return args
 
 def experiment_LS(args, test=None, data=None, full=True, L=True, OD=True,
-                  CP=True, LP=True, eq='CP', init=True):
+                  CP=True, LP=True, eq='CP', init=True, noisy=False):
     """
     Least squares experiment
     :param test:
@@ -135,11 +135,11 @@ def experiment_LS(args, test=None, data=None, full=True, L=True, OD=True,
         fname = '%s/%s' % (c.DATA_DIR,test)
         A, b, N, block_sizes, x_true, nz, flow, rsort_index, x0, out = \
             load_data(fname, full=full, L=L, OD=OD, CP=CP, LP=LP, eq=eq,
-                      init=init)
+                      init=init, noisy=noisy)
     else:
         A, b, N, block_sizes, x_true, nz, flow, rsort_index, x0, out = \
             solver_input(data, full=full, L=L, OD=OD, CP=CP, LP=LP,
-                         eq=eq, init=init)
+                         eq=eq, init=init, noisy=noisy)
     init_time = time.time() - init_time
     output = out
     output['init_time'] = init_time
