@@ -18,7 +18,7 @@ def weighted_choice(weights):
 
 class HighwayNetwork:
 
-  def __init__(self, cellPositions, flows, routes, numCars, numDelays, spread=0, inertia=0, balancing=0):
+  def __init__(self, cellPositions, flows, routes, numCars, numDelays, tlimit=None, spread=0, inertia=0, balancing=0):
     # spread : random network interference degrading signal strength
     self.spread = spread
     # inertia : preference for an individual car to stay on the same tower
@@ -35,6 +35,7 @@ class HighwayNetwork:
         # TODO: disperse the cars in time by adding a random number of None's at the beginning of the route
         cars.append(route)
     '''
+    print "Deploying cars..."
     for d in xrange(numDelays):
       # add numCars every timestep for numDelay timesteps
       delay = [None] * d
@@ -45,9 +46,14 @@ class HighwayNetwork:
     shuffle(cars)
     # transpose to get where each car is at each timestep
     self.timesteps = map(list, map(None, *cars))
+    if tlimit:
+      self.timesteps = self.timesteps[:tlimit]
 
+    print "Calculating signal strength..."
     self.buildRSSI()
+    print "Determining tower assignment..."
     self.assignTowers()
+    print "Done."
     self.collect()
 
   def calculateRSSI(self, car, tower):
@@ -121,7 +127,7 @@ if __name__ == "__main__":
                [ (2*t, 2*t) for t in range(3) ], 
              ]
   else:
-    numCellTowers = 10
+    numCellTowers = 80
 
     import scipy.io
     data = scipy.io.loadmat('sensitivity_sample.mat')
@@ -142,7 +148,7 @@ if __name__ == "__main__":
   Simulation
   """
   # Run simulation
-  n = HighwayNetwork(cellPositions, flows, routes, 100, 10)
+  n = HighwayNetwork(cellPositions, flows, routes, 200, 10, tlimit = 100)
   # Print results
   for k, v in n.paths.iteritems():
     print k, ":", v
