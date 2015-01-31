@@ -1,5 +1,7 @@
 from random import shuffle, random, uniform, randint, seed
 from math import log10
+import logging
+
 
 def uniq(seq):
     last = [None]
@@ -22,17 +24,17 @@ class HighwayNetwork:
     self.cellPositions = cellPositions
     self.flows = [x for x in flows if x > threshold]
     self.routes = [x for (i, x) in enumerate(routes) if flows[i] > threshold]
-    print "Calculating signal strength..."
+    logging.info( "Calculating signal strength...")
     self.buildRSSI()
 
   def go(self, numCars, numDelays, tlimit=None, spread=0, inertia=0, balancing=0):
-    print "Deploying cars..."
+    logging.info( "Deploying cars...")
     self.deployCars(numCars, numDelays, tlimit)
-    print "Adding RF noise..."
+    logging.info( "Adding RF noise...")
     self.addNoise(spread)
-    print "Determining tower assignment..."
+    logging.info( "Determining tower assignment...")
     self.assignTowers(inertia, balancing)
-    print "Done."
+    logging.info( "Done.")
     self.collect()
 
   def deployCars(self, numCars, numDelays, tlimit=None):
@@ -104,13 +106,6 @@ class HighwayNetwork:
     for car in cars:
       paths[car] = 1 + paths.get(car, 0)
     self.paths = paths
-   
-  def toString(self):
-    for ts in self.timesteps:
-      for car in ts:
-        print car
-      print
-    print "~~~"
 
 if __name__ == "__main__": 
   import sys
