@@ -1,6 +1,5 @@
 from random import shuffle, random
 from math import log10
-from copy import deepcopy
 
 def uniq(seq):
     last = [None]
@@ -78,7 +77,7 @@ class HighwayNetwork:
     print "~~~"
 
 if __name__ == "__main__": 
-  simple = True
+  simple = False
 
   if simple:
     cellPositions = [ (1,1), (1,3), (3,1) ]
@@ -89,10 +88,22 @@ if __name__ == "__main__":
                [ (2*t, 2*t) for t in range(3) ], 
              ]
   else:
+    numCellTowers = 80
+
     import scipy.io
     data = scipy.io.loadmat('sensitivity_sample.mat')
-    data['paths_sampled'][N][0]
+    flows = [1 for x in data['x_true']]
+    routes = [x[0] for x in data['paths_sampled']]
 
+    cellPositions = []
+    maxx = max([max(r[:,0]) for r in routes])
+    maxy = max([max(r[:,1]) for r in routes])
+    minx = min([min(r[:,0]) for r in routes])
+    miny = min([min(r[:,1]) for r in routes])
+    for i in xrange(numCellTowers):
+      cellPositions.append((minx + random() * (maxx - minx), miny + random() * (maxy - miny)))
 
   n = HighwayNetwork(cellPositions, flows, routes)
-  print n.paths
+  for k, v in n.paths.iteritems():
+    print k, ":", v
+  print len(n.paths)
