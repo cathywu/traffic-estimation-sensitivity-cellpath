@@ -3,15 +3,19 @@ import ipdb
 import numpy as np
 import scipy.io
 import logging
+from pprint import pprint
 
 import config as c
 
-from helpers import array, to_sp, parser, update_args
+from helpers import array, to_sp, parser, update_args, experiment_LS, \
+    experiment_LSQR
+from HighwayNetwork import HighwayNetwork
+
+# dependencies from traffic-estimation-wardrop
 from isttt2014_experiments import synthetic_data
 import path_solver
 import Waypoints as WP
 from linkpath import LinkPath
-from HighwayNetwork import HighwayNetwork
 
 def sample_paths(paths, start_pos, end_pos, free_flow_travel_time, m=2):
     paths_sampled = []
@@ -41,7 +45,7 @@ def generate_sampled_UE(g,m=2):
     start_pos, end_pos = g.get_links()
     free_flow_travel_time = array(g.get_ffdelays())
     paths_sampled = sample_paths(paths, start_pos, end_pos, free_flow_travel_time, m=2)
-    return paths_sampled
+    return paths_sampled, paths
 
 def generate_data_UE(data=None, export=False, SO=False, demand=3, N=30,
                           withODs=False, NLP=122):
@@ -101,12 +105,26 @@ def scenario(params=None, log='INFO'):
     # data[4] = (1, 3, 0.2, [((3.5, 0.5, 6.5, 3.0), 1)], (2,2), 2.0)
     # TODO trials?
     data, graph = generate_data_UE(data=config, SO=SO, NLP=args.NLP)
-    paths_sampled = generate_sampled_UE(graph,m=2)
+    paths_sampled, paths = generate_sampled_UE(graph,m=2)
     HN = HighwayNetwork(data['cell_pos'], data['x_true'], paths_sampled, 100, 10)
     if 'error' in data:
         return {'error' : data['error']}
 
+    eq = 'CP' if args.use_CP else 'OD'
+    if args.solver == 'LS':
+        output = experiment_LS(args, full=args.all_links, init=args.init,
+                               L=args.use_L, OD=args.use_OD, CP=args.use_CP,
+                               LP=args.use_LP, eq=eq, data=data)
+    elif args.solver == 'LSQR':
+        output = experiment_LSQR(args, full=args.all_links, L=args.use_L,
+                                 OD=args.use_OD, CP=args.use_CP, LP=args.use_LP, data=data)
+
+    if args.output == True:
+        pprint(output)
+
     ipdb.set_trace()
+
+    return output
 
 if __name__ == "__main__":
     scenario()

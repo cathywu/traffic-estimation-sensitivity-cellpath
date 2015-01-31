@@ -10,4 +10,4 @@
 
 Sample command
 
-    python main.py --log INFO --output --NLP 10 --NL 0 --nrow 4 --solver CS --NB 50 --ncol 8 --nodroutes 15 --model UE --NS 0 --method BB --sparse --use_L
+    python main.py main.py --log INFO --NLP 10 --NL 0 --NS 0 --NB 50 --solver LS --model UE --method BB --use_L
