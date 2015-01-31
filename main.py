@@ -106,7 +106,9 @@ def scenario(params=None, log='INFO'):
     # TODO trials?
     data, graph = generate_data_UE(data=config, SO=SO, NLP=args.NLP)
     paths_sampled, paths = generate_sampled_UE(graph,m=2)
-    HN = HighwayNetwork(data['cell_pos'], data['x_true'], paths_sampled, 100, 10)
+    HN = HighwayNetwork(data['cell_pos'], data['x_true'], paths_sampled)
+    HN.go(100, 10, tlimit=100)
+
     if 'error' in data:
         return {'error' : data['error']}
 
