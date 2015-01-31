@@ -110,7 +110,7 @@ def scenario(params=None, noisy=False, num_cars=100, num_delays=10, tlimit=100):
         cp, cp_paths, cp_flow = zip(*wp_trajs)
         cp = [tuple(cpp) for cpp in cp]
         HN = HighwayNetwork(data['cell_pos'], data['x_true'], paths_sampled)
-        f, rest = HN.go(num_cars, num_delays, tlimit=tlimit, cellpaths=cp)
+        f, rest = next(HN.go(num_cars, num_delays, tlimit=tlimit, cellpaths=cp))
 
         # Replace f with new noisy f
         data['f'] = array(f)
