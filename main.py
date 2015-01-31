@@ -84,7 +84,7 @@ def generate_data_UE(data=None, export=False, SO=False, demand=3, N=30,
 
     return data, graph
 
-def scenario(params=None, log='INFO'):
+def scenario(params=None, vanilla=False, num_cars=100, num_delays=10, tlimit=100):
     # use argparse object as default template
     p = parser()
     args = p.parse_args()
@@ -105,9 +105,14 @@ def scenario(params=None, log='INFO'):
     # data[4] = (1, 3, 0.2, [((3.5, 0.5, 6.5, 3.0), 1)], (2,2), 2.0)
     # TODO trials?
     data, graph = generate_data_UE(data=config, SO=SO, NLP=args.NLP)
-    paths_sampled, paths = generate_sampled_UE(graph,m=2)
-    HN = HighwayNetwork(data['cell_pos'], data['x_true'], paths_sampled)
-    HN.go(100, 10, tlimit=100)
+    if vanilla is False:
+        paths_sampled, paths = generate_sampled_UE(graph,m=2)
+        HN = HighwayNetwork(data['cell_pos'], data['x_true'], paths_sampled)
+        HN.go(num_cars, num_delays, tlimit=tlimit)
+
+        # Replace x_true with new x
+        # x = HN.get_x()
+        # data['x_true'] = x
 
     if 'error' in data:
         return {'error' : data['error']}
@@ -119,7 +124,8 @@ def scenario(params=None, log='INFO'):
                                LP=args.use_LP, eq=eq, data=data)
     elif args.solver == 'LSQR':
         output = experiment_LSQR(args, full=args.all_links, L=args.use_L,
-                                 OD=args.use_OD, CP=args.use_CP, LP=args.use_LP, data=data)
+                                 OD=args.use_OD, CP=args.use_CP, LP=args.use_LP,
+                                 data=data)
 
     if args.output == True:
         pprint(output)
