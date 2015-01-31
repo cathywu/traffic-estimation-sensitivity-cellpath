@@ -1,7 +1,16 @@
-
 from scipy.sparse import csr_matrix
 import argparse
 import numpy as np
+import time
+import logging
+import numpy.linalg as la
+
+import config as c
+
+from python.util import load_data, solver_input
+from python import util
+from python.c_extensions.simplex_projection import simplex_projection
+from python import BB, LBFGS, DORE, solvers
 
 # Clean array wrapper
 def array(x):
@@ -112,3 +121,186 @@ def update_args(args, params):
 
     return args
 
+def experiment_LS(args, test=None, data=None, full=True, L=True, OD=True,
+                  CP=True, LP=True, eq='CP', init=True):
+    """
+    Least squares experiment
+    :param test:
+    :return:
+    """
+    ## LS experiment
+    ## TODO: invoke solver
+    init_time = time.time()
+    if data is None and test is not None:
+        fname = '%s/%s' % (c.DATA_DIR,test)
+        A, b, N, block_sizes, x_true, nz, flow, rsort_index, x0, out = \
+            load_data(fname, full=full, L=L, OD=OD, CP=CP, LP=LP, eq=eq,
+                      init=init)
+    else:
+        A, b, N, block_sizes, x_true, nz, flow, rsort_index, x0, out = \
+            solver_input(data, full=full, L=L, OD=OD, CP=CP, LP=LP,
+                         eq=eq, init=init)
+    init_time = time.time() - init_time
+    output = out
+    output['init_time'] = init_time
+
+    # x0 = np.array(util.block_e(block_sizes - 1, block_sizes))
+
+    if args.noise:
+        b_true = b
+        delta = np.random.normal(scale=b*args.noise)
+        b = b + delta
+
+    if block_sizes is not None:
+        logging.debug("Blocks: %s" % block_sizes.shape)
+    # z0 = np.zeros(N.shape[1])
+    if N is None or (block_sizes-1).any() == False:
+        iters, times, states = [0],[0],[x0]
+        x_last, error, output = LS_postprocess(states,x0,A,b,x_true,scaling=flow,
+                                               block_sizes=block_sizes,N=N,
+                                               output=output,is_x=True)
+    else:
+        iters, times, states = LS_solve(A,b,x0,N,block_sizes,args)
+        x_last, error, output = LS_postprocess(states,x0,A,b,x_true,scaling=flow,
+                                               block_sizes=block_sizes,N=N,
+                                               output=output)
+
+    # LS_plot(x_last, times, error)
+    output['duration'] = np.sum(times)
+
+    output['iters'], output['times'] = list(iters), list(times)
+    return output
+
+def LS_solve(A,b,x0,N,block_sizes,args):
+    z0 = util.x2z(x0,block_sizes)
+    target = A.dot(x0)-b
+
+    options = { 'max_iter': 300000,
+                'verbose': 1,
+                'opt_tol' : 1e-30,
+                'suff_dec': 0.003, # FIXME unused
+                'corrections': 500 } # FIXME unused
+    AT = A.T.tocsr()
+    NT = N.T.tocsr()
+
+    f = lambda z: 0.5 * la.norm(A.dot(N.dot(z)) + target)**2
+    nabla_f = lambda z: NT.dot(AT.dot(A.dot(N.dot(z)) + target))
+
+    def proj(x):
+        projected_value = simplex_projection(block_sizes - 1,x)
+        # projected_value = pysimplex_projection(block_sizes - 1,x)
+        return projected_value
+
+    import time
+    iters, times, states = [], [], []
+    def log(iter_,state,duration):
+        iters.append(iter_)
+        times.append(duration)
+        states.append(state)
+        start = time.time()
+        return start
+
+    logging.debug('Starting %s solver...' % args.method)
+    if args.method == 'LBFGS':
+        LBFGS.solve(z0+1, f, nabla_f, solvers.stopping, log=log,proj=proj,
+                    options=options)
+        logging.debug("Took %s time" % str(np.sum(times)))
+    elif args.method == 'BB':
+        BB.solve(z0,f,nabla_f,solvers.stopping,log=log,proj=proj,
+                 options=options)
+    elif args.method == 'DORE':
+        # setup for DORE
+        alpha = 0.99
+        lsv = util.lsv_operator(A, N)
+        logging.info("Largest singular value: %s" % lsv)
+        A_dore = A*alpha/lsv
+        target_dore = target*alpha/lsv
+
+        DORE.solve(z0, lambda z: A_dore.dot(N.dot(z)),
+                   lambda b: N.T.dot(A_dore.T.dot(b)), target_dore, proj=proj,
+                   log=log,options=options,record_every=100)
+        A_dore = None
+    logging.debug('Stopping %s solver...' % args.method)
+    return iters, times, states
+
+def LS_postprocess(states, x0, A, b, x_true, scaling=None, block_sizes=None,
+                   output=None, N=None, is_x=False):
+    if scaling is None:
+        scaling = np.ones(x_true.shape)
+    if output is None:
+        output = {}
+    d = len(states)
+    if not is_x:
+        x_hat = N.dot(np.array(states).T) + np.tile(x0,(d,1)).T
+    else:
+        x_hat = np.array(states).T
+    x_last = x_hat[:,-1]
+    n = x_hat.shape[1]
+
+    logging.debug("Shape of x0: %s" % repr(x0.shape))
+    logging.debug("Shape of x_hat: %s" % repr(x_hat.shape))
+    logging.debug('A: %s' % repr(A.shape))
+    if block_sizes is not None:
+        logging.debug('blocks: %s' % repr(block_sizes.shape))
+    output['AA'] = A.shape
+    output['blocks'] = block_sizes.shape if block_sizes is not None else None
+
+    # Objective error, i.e. 0.5||Ax-b||_2^2
+    starting_error = 0.5 * la.norm(A.dot(x0)-b)**2
+    opt_error = 0.5 * la.norm(A.dot(x_true)-b)**2
+    diff = A.dot(x_hat) - np.tile(b,(d,1)).T
+    error = 0.5 * np.diag(diff.T.dot(diff))
+    output['0.5norm(Ax-b)^2'], output['0.5norm(Ax_init-b)^2'] = error, starting_error
+    logging.debug('0.5norm(Ax-b)^2: %8.5e\n0.5norm(Ax_init-b)^2: %8.5e' % \
+                  (error[-1], starting_error))
+    output['0.5norm(Ax*-b)^2'] = opt_error
+    logging.debug('0.5norm(Ax*-b)^2: %8.5e' % opt_error)
+
+    # Route flow error, i.e ||x-x*||_1
+    x_true_block = np.tile(x_true,(n,1))
+    x_diff = x_true_block-x_hat.T
+
+    scaling_block = np.tile(scaling,(n,1))
+    x_diff_scaled = scaling_block * x_diff
+    x_true_scaled = scaling_block * x_true_block
+
+    # most incorrect entry (route flow)
+    dist_from_true = np.max(x_diff_scaled,axis=1)
+    logging.debug('max|f * (x-x_true)|: %.5f' % dist_from_true[-1])
+    output['max|f * (x-x_true)|'] = dist_from_true
+
+    # num incorrect entries
+    wrong = np.bincount(np.where(x_diff > 1e-3)[0])
+    output['incorrect x entries'] = wrong
+    logging.debug('incorrect x entries: %s' % wrong[-1] if wrong.size > 0 else 'NA')
+
+    # % route flow error
+    per_flow = np.sum(np.abs(x_diff_scaled), axis=1) / np.sum(x_true_scaled, axis=1)
+    output['percent flow allocated incorrectly'] = per_flow
+    logging.debug('percent flow allocated incorrectly: %f' % per_flow[-1] if \
+                      per_flow.size > 0 else 'NA')
+
+    # initial route flow error
+    start_dist_from_true = np.max(scaling * np.abs(x_true-x0))
+    logging.debug('max|f * (x_init-x_true)|: %.5f' % start_dist_from_true)
+    output['max|f * (x_init-x_true)|'] = start_dist_from_true
+
+    return x_last, error, output
+
+def experiment_LSQR(args, test=None, data=None, full=False, L=True, OD=True,
+                    CP=True, LP=True, damp=0.0):
+    init_time = time.time()
+    A, b, x0, x_true, out = solver_input(data, full=full, L=L, OD=OD, CP=CP,
+                                         LP=LP, solve=True, damp=damp)
+    init_time = time.time() - init_time
+    output = out
+    output['init_time'] = init_time
+
+    if A is None:
+        output['error'] = "Empty objective"
+        return output
+
+    _, _, output = LS_postprocess([x0],x0,A,b,x_true,output=output,is_x=True)
+
+    output['duration'], output['iters'], output['times'] = 0, [0], [0]
+    return output
