@@ -1,0 +1,12 @@
+ACCEPTED_LOG_LEVELS = ['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'WARN']
+
+DATA_DIR = '<PATH TO REPO>/traffic-estimation-sensitivity-cellpath/data'
+
+REPOSITORIES = { \
+    'LS': '<PATH TO traffic-estimation REPO>',
+    'wardrop': '<PATH TO traffic-estimation-wardrop REPO>', }
+
+import os
+for (k,v) in REPOSITORIES.iteritems():
+    # add to path after current dir
+    os.sys.path.insert(1,v)
