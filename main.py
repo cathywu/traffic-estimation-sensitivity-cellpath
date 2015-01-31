@@ -84,7 +84,7 @@ def generate_data_UE(data=None, export=False, SO=False, demand=3, N=30,
 
     return data, graph, wp_trajs
 
-def scenario(params=None, noisy=False, num_cars=100, num_delays=10, tlimit=100):
+def scenario(params=None):
     # use argparse object as default template
     p = parser()
     args = p.parse_args()
@@ -105,19 +105,24 @@ def scenario(params=None, noisy=False, num_cars=100, num_delays=10, tlimit=100):
     # data[4] = (1, 3, 0.2, [((3.5, 0.5, 6.5, 3.0), 1)], (2,2), 2.0)
     # TODO trials?
     data, graph, wp_trajs = generate_data_UE(data=config, SO=SO, NLP=args.NLP)
-    if noisy is True:
-        paths_sampled = generate_sampled_UE(graph,m=2)
-        cp, cp_paths, cp_flow = zip(*wp_trajs)
-        cp = [tuple(cpp) for cpp in cp]
-        HN = HighwayNetwork(data['cell_pos'], data['x_true'], paths_sampled)
-        f, rest = HN.go(num_cars, num_delays, tlimit=tlimit, cellpaths=cp)
+    return args, data, graph, wp_trajs
 
-        # Replace f with new noisy f
-        data['f'] = array(f)
+def add_noise(data, graph, wp_trajs, num_cars=100, num_delays=10,
+              tlimit=100):
+    paths_sampled = generate_sampled_UE(graph,m=2)
+    cp, cp_paths, cp_flow = zip(*wp_trajs)
+    cp = [tuple(cpp) for cpp in cp]
+    HN = HighwayNetwork(data['cell_pos'], data['x_true'], paths_sampled)
+    f, rest = HN.go(num_cars, num_delays, tlimit=tlimit, cellpaths=cp)
+
+    # Replace f with new noisy f
+    data['f'] = array(f)
 
     if 'error' in data:
         return {'error' : data['error']}
+    return data
 
+def solve(args, data, noisy=False):
     eq = 'CP' if args.use_CP else 'OD'
     if args.solver == 'LS':
         output = experiment_LS(args, full=args.all_links, init=args.init,
@@ -131,9 +136,23 @@ def scenario(params=None, noisy=False, num_cars=100, num_delays=10, tlimit=100):
     if args.output == True:
         pprint(output)
 
-    ipdb.set_trace()
-
     return output
 
+def experiment():
+    args, data, graph, wp_trajs = scenario()
+    output_control = solve(args, data)
+    logging.info('Control flow error: %0.4f' % \
+                 output_control['percent flow allocated incorrectly'][-1])
+    outputs = []
+    params = [(1,2,3)]
+    for (a,c,b) in params:
+        data_noisy = add_noise(data, graph, wp_trajs)
+        output = solve(args, data_noisy, noisy=True)
+        outputs.append(output)
+        logging.info('Flow error: %0.4f' % \
+                 output['percent flow allocated incorrectly'][-1])
+    ipdb.set_trace()
+
 if __name__ == "__main__":
-    scenario()
+    # scenario()
+    experiment()
