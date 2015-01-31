@@ -1,5 +1,6 @@
 from random import shuffle, random, uniform, randint, seed
 from math import log10
+from copy import deepcopy
 import logging
 
 
@@ -54,7 +55,8 @@ class HighwayNetwork:
 
   def addNoise(self, spread=0):
     # spread : random network interference degrading signal strength
-    for ts in self.timesteps:
+    self.noisy = deepcopy(self.timesteps)
+    for ts in self.noisy:
       for car in ts:
         if car is None:
           continue
@@ -80,14 +82,15 @@ class HighwayNetwork:
   def assignTowers(self, inertia, balancing):
     # inertia : preference for an individual car to stay on the same tower
     # balancing : disincentivize more heavily loaded towers
-    for i, ts in enumerate(self.timesteps):
+    self.towers = deepcopy(self.noisy)
+    for i, ts in enumerate(self.towers):
       towerLoad = [0] * len(self.cellPositions)
       for c, car in enumerate(ts):
         # inertia : stay on the same tower
         if car is None:
           continue
         if i > 0:
-          lastTower = self.timesteps[i-1][c]
+          lastTower = self.towers[i-1][c]
           if lastTower is not None:
             car[lastTower] += inertia
 
@@ -97,11 +100,11 @@ class HighwayNetwork:
 
         # pick winner
         tower = car.index(max(car))
-        self.timesteps[i][c] = tower
+        self.towers[i][c] = tower
         towerLoad[tower] += 1
 
   def collect(self, total, cellpaths=None):
-    cars = map(uniq, map(None, *self.timesteps))
+    cars = map(uniq, map(None, *self.towers))
     paths = {}
     for car in cars:
       paths[car] = 1 + paths.get(car, 0)
