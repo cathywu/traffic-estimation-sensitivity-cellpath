@@ -82,7 +82,7 @@ def generate_data_UE(data=None, export=False, SO=False, demand=3, N=30,
             fname = '%s/SO_graph.mat' % c.DATA_DIR
         scipy.io.savemat(fname, data, oned_as='column')
 
-    return data, graph
+    return data, graph, wp_trajs
 
 def scenario(params=None, vanilla=False, num_cars=100, num_delays=10, tlimit=100):
     # use argparse object as default template
@@ -104,11 +104,13 @@ def scenario(params=None, vanilla=False, num_cars=100, num_delays=10, tlimit=100
     # data[3] = (3, 5, 0.2, [((3.5, 0.5, 6.5, 3.0), 2)], (4,2), 2.0)
     # data[4] = (1, 3, 0.2, [((3.5, 0.5, 6.5, 3.0), 1)], (2,2), 2.0)
     # TODO trials?
-    data, graph = generate_data_UE(data=config, SO=SO, NLP=args.NLP)
+    data, graph, wp_trajs = generate_data_UE(data=config, SO=SO, NLP=args.NLP)
     if vanilla is False:
-        paths_sampled, paths = generate_sampled_UE(graph,m=2)
+        paths_sampled = generate_sampled_UE(graph,m=2)
+        ipdb.set_trace()
+        cp, cp_paths, cp_flow = zip(*wp_trajs)
         HN = HighwayNetwork(data['cell_pos'], data['x_true'], paths_sampled)
-        HN.go(num_cars, num_delays, tlimit=tlimit)
+        HN.go(num_cars, num_delays, tlimit=tlimit, cellpaths=cp)
 
         # Replace x_true with new x
         # x = HN.get_x()
