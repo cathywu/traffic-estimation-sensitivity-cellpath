@@ -1,4 +1,4 @@
-from random import shuffle, random
+from random import shuffle, random, uniform, randint, seed
 from math import log10
 
 def uniq(seq):
@@ -6,20 +6,44 @@ def uniq(seq):
     setlast = lambda x: last.append(x)
     return tuple([ x for x in seq if not (x is None or x == last[-1] or setlast(x))])
 
+def weighted_choice(weights):
+   total = sum(weights)
+   r = uniform(0, total)
+   upto = 0
+   for i, w in enumerate(weights):
+      upto += w
+      if upto > r:
+         return i
+   assert False, "Shouldn't get here"
+
 class HighwayNetwork:
 
-  def __init__(self, cellPositions, flows, routes, spread=0, inertia=0, balancing=0):
+  def __init__(self, cellPositions, flows, routes, numCars, numDelays, spread=0, inertia=0, balancing=0):
+    # spread : random network interference degrading signal strength
     self.spread = spread
+    # inertia : preference for an individual car to stay on the same tower
     self.inertia = inertia
+    # balancing : disincentivize more heavily loaded towers
     self.balancing = balancing
 
     self.cellPositions = cellPositions
     cars = []
+    '''
     for (flow, route) in zip(flows, routes):
+      # Add a N = flow new cars travelling on each respective route
       for i in xrange(flow):
         # TODO: disperse the cars in time by adding a random number of None's at the beginning of the route
         cars.append(route)
-    #shuffle(cars)
+    '''
+    for d in xrange(numDelays):
+      # add numCars every timestep for numDelay timesteps
+      delay = [None] * d
+      for c in xrange(numCars):
+        # pick a route for each car according to flows
+        route = weighted_choice(flows)
+        cars.append(delay + routes[route])
+    shuffle(cars)
+    # transpose to get where each car is at each timestep
     self.timesteps = map(list, map(None, *cars))
 
     self.buildRSSI()
@@ -51,7 +75,8 @@ class HighwayNetwork:
           continue
         if i > 0:
           lastTower = self.timesteps[i-1][c]
-          car[lastTower] += self.inertia
+          if lastTower is not None:
+            car[lastTower] += self.inertia
 
         # balancing : penalize heavily loaded towers
         for t, load in enumerate(towerLoad):
@@ -77,8 +102,16 @@ class HighwayNetwork:
     print "~~~"
 
 if __name__ == "__main__": 
+  import sys
+  myseed = randint(0, sys.maxint)
+  print "Random seed:", myseed
+  seed(myseed)
+
   simple = False
 
+  """
+  Set up environment
+  """
   if simple:
     cellPositions = [ (1,1), (1,3), (3,1) ]
     flows = [ 1, 2, 3, 4 ]
@@ -88,22 +121,29 @@ if __name__ == "__main__":
                [ (2*t, 2*t) for t in range(3) ], 
              ]
   else:
-    numCellTowers = 80
+    numCellTowers = 10
 
     import scipy.io
     data = scipy.io.loadmat('sensitivity_sample.mat')
     flows = [1 for x in data['x_true']]
-    routes = [x[0] for x in data['paths_sampled']]
+    routes = [map(tuple, x[0]) for x in data['paths_sampled']]
 
     cellPositions = []
-    maxx = max([max(r[:,0]) for r in routes])
-    maxy = max([max(r[:,1]) for r in routes])
-    minx = min([min(r[:,0]) for r in routes])
-    miny = min([min(r[:,1]) for r in routes])
+    x = [s[0] for r in routes for s in r]
+    y = [s[1] for r in routes for s in r]
+    maxx = max(x)
+    maxy = max(y)
+    minx = min(x)
+    miny = min(y)
     for i in xrange(numCellTowers):
       cellPositions.append((minx + random() * (maxx - minx), miny + random() * (maxy - miny)))
 
-  n = HighwayNetwork(cellPositions, flows, routes)
+  """
+  Simulation
+  """
+  # Run simulation
+  n = HighwayNetwork(cellPositions, flows, routes, 100, 10)
+  # Print results
   for k, v in n.paths.iteritems():
     print k, ":", v
   print len(n.paths)
