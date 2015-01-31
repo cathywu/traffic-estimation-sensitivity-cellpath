@@ -110,11 +110,10 @@ def scenario(params=None, vanilla=False, num_cars=100, num_delays=10, tlimit=100
         ipdb.set_trace()
         cp, cp_paths, cp_flow = zip(*wp_trajs)
         HN = HighwayNetwork(data['cell_pos'], data['x_true'], paths_sampled)
-        HN.go(num_cars, num_delays, tlimit=tlimit, cellpaths=cp)
+        f, rest = HN.go(num_cars, num_delays, tlimit=tlimit, cellpaths=cp)
 
-        # Replace x_true with new x
-        # x = HN.get_x()
-        # data['x_true'] = x
+        # Replace f with new noisy f
+        data['f'] = f
 
     if 'error' in data:
         return {'error' : data['error']}

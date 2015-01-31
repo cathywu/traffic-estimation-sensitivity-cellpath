@@ -66,7 +66,11 @@ class HighwayNetwork:
   def calculateRSSI(self, car, tower):
     # spread : random network interference degrading signal strength
     d2 = (car[0] - tower[0])**2 + (car[1] - tower[1])**2
-    fade = 10*log10(d2)
+    try:
+        fade = 10*log10(d2)
+    except TypeError:
+        import ipdb
+        ipdb.set_trace()
     return -fade
 
   def buildRSSI(self):
