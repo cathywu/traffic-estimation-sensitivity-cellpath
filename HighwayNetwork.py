@@ -43,7 +43,7 @@ class HighwayNetwork:
       for c in xrange(numCars):
         # pick a route for each car according to flows
         route = weighted_choice(self.flows)
-        cars.append(delay + routes[route])
+        cars.append(delay + self.routes[route])
     shuffle(cars)
     # transpose to get where each car is at each timestep
     self.timesteps = map(list, map(None, *cars))
