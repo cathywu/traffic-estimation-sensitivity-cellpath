@@ -27,7 +27,7 @@ class HighwayNetwork:
     logging.info( "Calculating signal strength...")
     self.buildRSSI()
 
-  def go(self, numCars, numDelays, tlimit=None, spread=0, inertia=0, balancing=0):
+  def go(self, numCars, numDelays, tlimit=None, spread=0, inertia=0, balancing=0, cellpaths=None):
     logging.info( "Deploying cars...")
     self.deployCars(numCars, numDelays, tlimit)
     logging.info( "Adding RF noise...")
@@ -35,7 +35,7 @@ class HighwayNetwork:
     logging.info( "Determining tower assignment...")
     self.assignTowers(inertia, balancing)
     logging.info( "Done.")
-    self.collect()
+    return self.collect(numCars * numDelays, cellpaths = cellpaths)
 
   def deployCars(self, numCars, numDelays, tlimit=None):
     cars = []
@@ -100,16 +100,26 @@ class HighwayNetwork:
         self.timesteps[i][c] = tower
         towerLoad[tower] += 1
 
-  def collect(self):
+  def collect(self, total, cellpaths=None):
     cars = map(uniq, map(None, *self.timesteps))
     paths = {}
     for car in cars:
       paths[car] = 1 + paths.get(car, 0)
     self.paths = paths
 
+    if cellpaths:
+      f = [0] * len(cellpaths)
+      for i, cp in enumerate(cellpaths):
+        if cp in paths:
+          f[i] = paths[cp] * sum(self.flows) / total
+    else:
+      f = []
+    return f, sum(self.flows) - sum(f)
+
 if __name__ == "__main__": 
   import sys
   myseed = randint(0, sys.maxint)
+  myseed = 4909137950491786826
   print "Random seed:", myseed
   seed(myseed)
 
@@ -131,7 +141,7 @@ if __name__ == "__main__":
 
     import scipy.io
     data = scipy.io.loadmat('sensitivity_sample.mat')
-    flows = [1 for x in data['x_true']]
+    flows = [x[0] for x in data['x_true']]
     routes = [map(tuple, x[0]) for x in data['paths_sampled']]
 
     cellPositions = []
@@ -150,8 +160,10 @@ if __name__ == "__main__":
   """
   # Run simulation
   n = HighwayNetwork(cellPositions, flows, routes)
-  n.go(200, 10, tlimit = 100)
+  print n.go(200, 10, tlimit = 100, cellpaths=[ (34, 20, 67, 40, 42), (77, 74, 67, 42, 36, 42), (54, 72, 40, 67, 42, 36) ])
+  '''
   # Print results
   for k, v in n.paths.iteritems():
     print k, ":", v
   print len(n.paths)
+  '''
