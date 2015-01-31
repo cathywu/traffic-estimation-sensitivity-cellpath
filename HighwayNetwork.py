@@ -18,25 +18,25 @@ def weighted_choice(weights):
 
 class HighwayNetwork:
 
-  def __init__(self, cellPositions, flows, routes, numCars, numDelays,
-               tlimit=None, spread=0, inertia=0, balancing=0):
-    # spread : random network interference degrading signal strength
-    self.spread = spread
-    # inertia : preference for an individual car to stay on the same tower
-    self.inertia = inertia
-    # balancing : disincentivize more heavily loaded towers
-    self.balancing = balancing
-
+  def __init__(self, cellPositions, flows, routes, threshold = 1e-4):
     self.cellPositions = cellPositions
-    cars = []
-    '''
-    for (flow, route) in zip(flows, routes):
-      # Add a N = flow new cars travelling on each respective route
-      for i in xrange(flow):
-        # TODO: disperse the cars in time by adding a random number of None's at the beginning of the route
-        cars.append(route)
-    '''
+    self.flows = [x for x in flows if x > threshold]
+    self.routes = [x for (i, x) in enumerate(routes) if flows[i] > threshold]
+    print "Calculating signal strength..."
+    self.buildRSSI()
+
+  def go(self, numCars, numDelays, tlimit=None, spread=0, inertia=0, balancing=0):
     print "Deploying cars..."
+    self.deployCars(numCars, numDelays, tlimit)
+    print "Adding RF noise..."
+    self.addNoise(spread)
+    print "Determining tower assignment..."
+    self.assignTowers(inertia, balancing)
+    print "Done."
+    self.collect()
+
+  def deployCars(self, numCars, numDelays, tlimit=None):
+    cars = []
     for d in xrange(numDelays):
       # add numCars every timestep for numDelay timesteps
       delay = [None] * d
@@ -50,30 +50,34 @@ class HighwayNetwork:
     if tlimit:
       self.timesteps = self.timesteps[:tlimit]
 
-    print "Calculating signal strength..."
-    self.buildRSSI()
-    print "Determining tower assignment..."
-    self.assignTowers()
-    print "Done."
-    self.collect()
+  def addNoise(self, spread=0):
+    # spread : random network interference degrading signal strength
+    for ts in self.timesteps:
+      for car in ts:
+        if car is None:
+          continue
+        for i in xrange(len(car)):
+          car[i] -= spread*random()
 
   def calculateRSSI(self, car, tower):
     # spread : random network interference degrading signal strength
     d2 = (car[0] - tower[0])**2 + (car[1] - tower[1])**2
-    fade = 10*log10(d2) + self.spread*random()
+    fade = 10*log10(d2)
     return -fade
 
   def buildRSSI(self):
-    for ts in self.timesteps:
-      for i in xrange(len(ts)):
-        if ts[i] is None:
+    for route in self.routes:
+      for i in xrange(len(route)):
+        if route[i] is None:
           continue
         rssis = []
         for cell in self.cellPositions:
-          rssis.append(self.calculateRSSI(ts[i], cell))
-        ts[i] = rssis
+          rssis.append(self.calculateRSSI(route[i], cell))
+        route[i] = rssis
 
-  def assignTowers(self):
+  def assignTowers(self, inertia, balancing):
+    # inertia : preference for an individual car to stay on the same tower
+    # balancing : disincentivize more heavily loaded towers
     for i, ts in enumerate(self.timesteps):
       towerLoad = [0] * len(self.cellPositions)
       for c, car in enumerate(ts):
@@ -83,11 +87,11 @@ class HighwayNetwork:
         if i > 0:
           lastTower = self.timesteps[i-1][c]
           if lastTower is not None:
-            car[lastTower] += self.inertia
+            car[lastTower] += inertia
 
         # balancing : penalize heavily loaded towers
         for t, load in enumerate(towerLoad):
-          car[t] -= self.balancing * load
+          car[t] -= balancing * load
 
         # pick winner
         tower = car.index(max(car))
@@ -150,7 +154,8 @@ if __name__ == "__main__":
   Simulation
   """
   # Run simulation
-  n = HighwayNetwork(cellPositions, flows, routes, 200, 10, tlimit = 100)
+  n = HighwayNetwork(cellPositions, flows, routes)
+  n.go(200, 10, tlimit = 100)
   # Print results
   for k, v in n.paths.iteritems():
     print k, ":", v
