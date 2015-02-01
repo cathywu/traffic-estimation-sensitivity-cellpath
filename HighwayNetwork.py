@@ -55,7 +55,8 @@ class HighwayNetwork:
         logging.info( "Determining tower assignment (inertia=%f, balancing=%f) ..." % (i, b))
         self.assignTowers(i, b)
         logging.info( "Done.")
-        yield self.collect(numCars * numDelays, cellpaths = cellpaths)
+        f, rest = self.collect(numCars * numDelays, cellpaths = cellpaths)
+        yield f, rest, (s, i, b)
 
   def deployCars(self, numCars, numDelays, tlimit=None):
     cars = []
@@ -102,8 +103,8 @@ class HighwayNetwork:
     # inertia : preference for an individual car to stay on the same tower
     # balancing : disincentivize more heavily loaded towers
     self.towers = deepcopy(self.noisy)
+    towerLoad = [0] * len(self.cellPositions)
     for i, ts in enumerate(self.towers):
-      towerLoad = [0] * len(self.cellPositions)
       for c, car in enumerate(ts):
         # inertia : stay on the same tower
         if car is None:
@@ -112,6 +113,7 @@ class HighwayNetwork:
           lastTower = self.towers[i-1][c]
           if lastTower is not None:
             car[lastTower] += inertia
+            towerLoad[lastTower] -= 1
 
         # balancing : penalize heavily loaded towers
         for t, load in enumerate(towerLoad):
@@ -182,8 +184,10 @@ if __name__ == "__main__":
   """
   # Run simulation
   n = HighwayNetwork(cellPositions, flows, routes)
-  for f, rest in  n.go(200, 10, tlimit = 100, balancing = [0, .05, .1], cellpaths=[ (34, 20, 67, 40, 42), (77, 74, 67, 42, 36, 42), (54, 72, 40, 67, 42, 36) ]):
+  for f, rest, params in  n.go(200, 10, tlimit = 100, inertia=[0, 0.03, 0.1], balancing = [0, .05, .1], cellpaths=[ (34, 20, 67, 40, 42), (77, 74, 67, 42, 36, 42), (54, 72, 40, 67, 42, 36) ]):
+    print params
     print f, rest
+    print
   '''
   # Print results
   for k, v in n.paths.iteritems():
