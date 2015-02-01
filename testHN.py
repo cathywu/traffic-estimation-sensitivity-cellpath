@@ -64,8 +64,7 @@ import matplotlib.pyplot as plt
 
 vor = Voronoi(cellPositions)
 voronoi_plot_2d(vor)
-plt.plot(vor.vertices[:,0], vor.vertices[:, 1], 'ko', ms=8)
-plt.plot(*zip(*routes[0]))
+plt.plot(*zip(*routes[0]), marker='.')
 
 for i, pt in enumerate(cellPositions):
   # Annotate the points 5 _points_ above and to the left of the vertex
