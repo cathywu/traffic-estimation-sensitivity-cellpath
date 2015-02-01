@@ -113,14 +113,10 @@ def scenario(params=None,m=2):
 
     return args, data, graph, wp_trajs
 
-def add_noise(data, graph, wp_trajs, num_cars=100, num_delays=10, m=2,
+def add_noise(data, paths_sampled, cps, num_cars=100, num_delays=10, m=2,
               tlimit=100,spreadlist=None, inertialist=None, balancinglist=None):
-    paths_sampled = generate_sampled_UE(graph,m=m)
-    cp, cp_paths, cp_flow = zip(*wp_trajs)
-    cp = [tuple(cpp) for cpp in cp]
     HN = HighwayNetwork(data['cell_pos'], data['x_true'], paths_sampled)
-    # cp = HN.getCellpaths()
-    HN_data = HN.go(num_cars, num_delays, tlimit=tlimit, cellpaths=cp,
+    HN_data = HN.go(num_cars, num_delays, tlimit=tlimit, cellpaths=cps,
                             spread=spreadlist, inertia=inertialist,
                             balancing=balancinglist)
 
@@ -142,13 +138,28 @@ def solve(args, data, noisy=False):
 
     return output
 
+def construct_U(data,paths_sampled,cps):
+    cp_list = []
+    for path in paths_sampled:
+        HN = HighwayNetwork(data['cell_pos'], np.array([1]), [path])
+        HN_data = HN.go(1, 1, spread=[0], inertia=[0], balancing=[0])
+        cp = HN.getCellpaths()
+        cp_list.append(cp)
+    return cp_list
+
 def experiment(m=2):
-    args, data, graph, wp_trajs = scenario(m=m)
+    args, data, graph, wp_trajs = scenario(m=20)
     # output_control = solve(args, data)
     # logging.info('Control flow error: %0.4f' % \
     #              output_control['percent flow allocated incorrectly'][-1])
     outputs = []
     f_orig = data['f']
+
+    paths_sampled = generate_sampled_UE(graph,m=m)
+    cps, cp_paths, cp_flow = zip(*wp_trajs)
+    cps = [tuple(cpp) for cpp in cps]
+    U = construct_U(data,paths_sampled,cps)
+    ipdb.set_trace()
 
     # spreadlist = (np.logspace(0,1,10, base=3)-1)/10
     # inertialist = (np.logspace(0,1,10, base=3)-1)/10
@@ -160,7 +171,7 @@ def experiment(m=2):
     inertialist = [0, 0.02,0.05]
     balancinglist = [0, 0.002,0.005]
 
-    HN_data = add_noise(data, graph, wp_trajs, num_cars=num_cars, m=m,
+    HN_data = add_noise(data, paths_sampled, cps, num_cars=num_cars, m=m,
                           num_delays=num_delays, tlimit=tlimit,
                           spreadlist=spreadlist, inertialist=inertialist,
                           balancinglist=balancinglist)
@@ -191,4 +202,4 @@ if __name__ == "__main__":
     print "Random seed:", myseed
     np.random.seed(myseed)
     random.seed(myseed)
-    experiment(m=2)
+    experiment(m=10)
