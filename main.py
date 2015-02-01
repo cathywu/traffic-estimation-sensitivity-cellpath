@@ -7,7 +7,7 @@ from pprint import pprint
 
 import config as c
 
-from helpers import array, to_sp, parser, update_args, experiment_LS, \
+from helpers import array, to_sp, to_np, parser, update_args, experiment_LS, \
     experiment_LSQR
 from HighwayNetwork import HighwayNetwork
 
@@ -119,7 +119,6 @@ def add_noise(data, paths_sampled, cps, num_cars=100, num_delays=10, m=2,
     HN_data = HN.go(num_cars, num_delays, tlimit=tlimit, cellpaths=cps,
                             spread=spreadlist, inertia=inertialist,
                             balancing=balancinglist)
-
     return HN_data
 
 def solve(args, data, noisy=False):
@@ -138,14 +137,45 @@ def solve(args, data, noisy=False):
 
     return output
 
+def simplex(paths_sampled,cp_canonical):
+    """Build simplex constraints from lp flows
+    """
+    from cvxopt import spmatrix
+    n = len(cp_canonical)
+    m = len(paths_sampled)
+    if n == 0:
+        return None, None
+    I, J = [], []
+    for i, path in enumerate(paths_sampled):
+        I.append(cp_canonical.index(path))
+        J.append(i)
+    U = to_sp(spmatrix(1.0, I, J, (n, m)))
+    return U
+
 def construct_U(data,paths_sampled,cps):
     cp_list = []
     for path in paths_sampled:
         HN = HighwayNetwork(data['cell_pos'], np.array([1]), [path])
-        HN_data = HN.go(1, 1, spread=[0], inertia=[0], balancing=[0])
+        HN_data = next(HN.go(1, 1, spread=[0], inertia=[0], balancing=[0]))
         cp = HN.getCellpaths()
         cp_list.append(cp)
-    return cp_list
+    ipdb.set_trace()
+
+    # We define this list of cp tuples to be the canonical one (including ordering)
+    # This is the variable that will be issued to future calls of HN.go
+    cp_canonical = list(set(cp_list))
+
+    # Next we construct the U matrix based off of this canonical list
+    U = simplex(paths_sampled,cp_canonical)
+
+    return U, cp_canonical
+
+def test_U(data, paths_sampled, cps, U, num_cars=100, num_delays=10, tlimit=100):
+    HN = HighwayNetwork(data['cell_pos'], data['x_true'], paths_sampled)
+    f,rest,(s,i,b) = next(HN.go(num_cars, num_delays, tlimit=tlimit, cellpaths=cps,
+                    spread=[0], inertia=[0], balancing=[0]))
+    x = data['x_true']
+    logging.info('||Ux-f|| = %0.4f' % np.norm(U.dot(x)-f))
 
 def experiment(m=2):
     args, data, graph, wp_trajs = scenario(m=20)
@@ -158,8 +188,10 @@ def experiment(m=2):
     paths_sampled = generate_sampled_UE(graph,m=m)
     cps, cp_paths, cp_flow = zip(*wp_trajs)
     cps = [tuple(cpp) for cpp in cps]
-    U = construct_U(data,paths_sampled,cps)
+    U, cp_canonical = construct_U(data,paths_sampled,cps)
     ipdb.set_trace()
+
+    test_U(data, paths_sampled, cp_canonical, U)
 
     # spreadlist = (np.logspace(0,1,10, base=3)-1)/10
     # inertialist = (np.logspace(0,1,10, base=3)-1)/10
@@ -171,10 +203,11 @@ def experiment(m=2):
     inertialist = [0, 0.02,0.05]
     balancinglist = [0, 0.002,0.005]
 
-    HN_data = add_noise(data, paths_sampled, cps, num_cars=num_cars, m=m,
+    HN_data = add_noise(data, paths_sampled, cp_canonical, num_cars=num_cars, m=m,
                           num_delays=num_delays, tlimit=tlimit,
                           spreadlist=spreadlist, inertialist=inertialist,
                           balancinglist=balancinglist)
+
     for f,rest,(s,i,b) in HN_data:
         # Replace f with new noisy f
         ipdb.set_trace()

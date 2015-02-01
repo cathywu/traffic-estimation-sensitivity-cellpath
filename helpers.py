@@ -12,6 +12,9 @@ from python import util
 from python.c_extensions.simplex_projection import simplex_projection
 from python import BB, LBFGS, DORE, solvers
 
+def to_np(X):
+    return np.array(X).squeeze()
+
 # Clean array wrapper
 def array(x):
     return np.atleast_1d(np.squeeze(np.array(x)))
