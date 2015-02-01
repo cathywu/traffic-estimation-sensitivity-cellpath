@@ -176,7 +176,6 @@ def test_U(data, paths_sampled, cps, U, num_cars=1000, num_delays=10, tlimit=100
                     spread=[0], inertia=[0], balancing=[0]))
     x = data['x_true']
     logging.info('||Ux-f|| = %0.4f' % la.norm(U.dot(x)-f))
-    ipdb.set_trace()
     return f
 
 def experiment(m=2,fname=None):
@@ -191,6 +190,8 @@ def experiment(m=2,fname=None):
     else:
         with open('%s/%s' % (c.DATA_DIR,fname)) as fin:
             (args, data, paths_sampled, cp_canonical, f_true) = pickle.load(fin)
+        if args.log in c.ACCEPTED_LOG_LEVELS:
+            logging.basicConfig(level=eval('logging.'+args.log))
 
     # spreadlist = (np.logspace(0,1,10, base=3)-1)/10
     # inertialist = (np.logspace(0,1,10, base=3)-1)/10
@@ -208,16 +209,17 @@ def experiment(m=2,fname=None):
     # logging.info('Control flow error: %0.4f' % \
     #              output_control['percent flow allocated incorrectly'][-1])
 
+    logging.info('Initializing noise..')
     HN_data = add_noise(data, paths_sampled, cp_canonical, num_cars=num_cars,
                         m=m, num_delays=num_delays, tlimit=tlimit,
                         spreadlist=spreadlist, inertialist=inertialist,
                         balancinglist=balancinglist)
 
+    logging.info('Noise added. Solving..')
     for f,rest,(s,i,b) in HN_data:
         # Replace f with new noisy f
-        ipdb.set_trace()
-
         data['f'] = array(f)
+        ipdb.set_trace()
 
         output = solve(args, data, noisy=True)
         outputs.append(output)
