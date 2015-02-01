@@ -2,7 +2,6 @@ from __future__ import division
 import ipdb
 from random import shuffle, random, uniform, randint, seed
 from math import log10
-from copy import deepcopy
 from itertools import product
 import logging
 
@@ -66,7 +65,7 @@ class HighwayNetwork:
       for c in xrange(numCars):
         # pick a route for each car according to flows
         route = weighted_choice(self.flows)
-        cars.append(delay + deepcopy(self.routes[route]))
+        cars.append(delay + self.routes[route][:])
     shuffle(cars)
     # transpose to get where each car is at each timestep
     self.timesteps = map(list, map(None, *cars))
@@ -75,13 +74,12 @@ class HighwayNetwork:
 
   def addNoise(self, spread=0):
     # spread : random network interference degrading signal strength
-    self.noisy = deepcopy(self.timesteps)
-    for ts in self.noisy:
-      for car in ts:
+    self.noisy = [[None for x in ts] for ts in self.timesteps]
+    for t, ts in enumerate(self.timesteps):
+      for c, car in enumerate(ts):
         if car is None:
           continue
-        for i in xrange(len(car)):
-          car[i] -= spread*random()
+        self.noisy[t][c] = [x - spread*random() for x in car]
 
   def calculateRSSI(self, car, tower):
     # spread : random network interference degrading signal strength
@@ -102,25 +100,26 @@ class HighwayNetwork:
   def assignTowers(self, inertia, balancing):
     # inertia : preference for an individual car to stay on the same tower
     # balancing : disincentivize more heavily loaded towers
-    self.towers = deepcopy(self.noisy)
+    self.towers = [[None for x in ts] for ts in self.noisy]
     towerLoad = [0] * len(self.cellPositions)
-    for i, ts in enumerate(self.towers):
+    for i, ts in enumerate(self.noisy):
       for c, car in enumerate(ts):
         # inertia : stay on the same tower
         if car is None:
           continue
+        towers = car[:]
         if i > 0:
           lastTower = self.towers[i-1][c]
           if lastTower is not None:
-            car[lastTower] += inertia
+            towers[lastTower] += inertia
             towerLoad[lastTower] -= 1
 
         # balancing : penalize heavily loaded towers
         for t, load in enumerate(towerLoad):
-          car[t] -= balancing * load
+          towers[t] -= balancing * load
 
         # pick winner
-        tower = car.index(max(car))
+        tower = towers.index(max(towers))
         self.towers[i][c] = tower
         towerLoad[tower] += 1
 
@@ -134,7 +133,6 @@ class HighwayNetwork:
       paths[car] = 1 + paths.get(car, 0)
     self.paths = paths
 
-    ipdb.set_trace()
     if cellpaths:
       f = [0] * len(cellpaths)
       for i, cp in enumerate(cellpaths):
