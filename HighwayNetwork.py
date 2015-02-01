@@ -134,6 +134,7 @@ class HighwayNetwork:
       paths[car] = 1 + paths.get(car, 0)
     self.paths = paths
 
+    ipdb.set_trace()
     if cellpaths:
       f = [0] * len(cellpaths)
       for i, cp in enumerate(cellpaths):
