@@ -155,8 +155,8 @@ def simplex(paths_sampled,cp_canonical):
 def construct_U(data,paths_sampled,cps):
     cp_list = []
     for path in paths_sampled:
-        HN = HighwayNetwork(data['cell_pos'], np.array([1]), [path])
-        HN_data = next(HN.go(1, 1, spread=[0], inertia=[0], balancing=[0]))
+        HN = HighwayNetwork(data['cell_pos'], [1], [path])
+        HN_data = next(HN.go(2, 1, spread=[0], inertia=[0], balancing=[0]))
         cp = HN.getCellpaths()
         cp_list.append(cp)
     ipdb.set_trace()

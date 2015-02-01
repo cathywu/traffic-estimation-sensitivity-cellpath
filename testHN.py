@@ -40,8 +40,8 @@ maxy = max(y)
 minx = min(x)
 miny = min(y)
 for i in xrange(numCellTowers):
-  cellPositions.append((minx + random() * (maxx - minx), miny + random() * \
-                        (maxy - miny)))
+  cellPositions.append((minx + random() * (maxx - minx), 
+                        miny + random() * (maxy - miny)))
 
 ########
 # 
@@ -49,7 +49,7 @@ for i in xrange(numCellTowers):
 # 
 ########
 
-index = 2
+index = 9
 flows = [1]
 routes = routes[index:index+1]
 
@@ -59,6 +59,7 @@ routes = routes[index:index+1]
 # 
 ########
 
+'''
 from scipy.spatial import Voronoi, voronoi_plot_2d
 import matplotlib.pyplot as plt
 
@@ -72,6 +73,7 @@ for i, pt in enumerate(cellPositions):
               textcoords='offset points')
 
 plt.show()
+'''
 
 ########
 # 
@@ -82,7 +84,7 @@ plt.show()
 # Run simulation
 n = HighwayNetwork(cellPositions, flows, routes)
 
-for f, rest, params in  n.go(200, 10, tlimit = 100, spread=[0, 0.01, .05, .1], inertia=[0]):
+for f, rest, params in  n.go(2000, 10, tlimit = 100, spread=[0, 1], inertia=[0, 1], balancing=[0, .1]):
   print "spread = %f, inertia = %f, balancing = %f" % params
   for cp, count in n.paths.iteritems():
     print count, ":", cp
