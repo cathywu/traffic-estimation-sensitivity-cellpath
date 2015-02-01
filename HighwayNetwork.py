@@ -124,6 +124,9 @@ class HighwayNetwork:
         self.towers[i][c] = tower
         towerLoad[tower] += 1
 
+  def getCellpaths(self):
+    return self.paths.keys()
+
   def collect(self, total, cellpaths=None):
     cars = map(uniq, map(None, *self.towers))
     paths = {}
@@ -184,7 +187,8 @@ if __name__ == "__main__":
   """
   # Run simulation
   n = HighwayNetwork(cellPositions, flows, routes)
-  for f, rest, params in  n.go(200, 10, tlimit = 100, inertia=[0, 0.03, 0.1], balancing = [0, .05, .1], cellpaths=[ (34, 20, 67, 40, 42), (77, 74, 67, 42, 36, 42), (54, 72, 40, 67, 42, 36) ]):
+  for f, rest, params in  n.go(200, 10, tlimit = 100, inertia=[0, 0.02, 0.5], balancing = [0, .02, .05], cellpaths=[ (34, 20, 67, 40, 42), (77, 74, 67, 42, 36, 42), (54, 72, 40, 67, 42, 36) ]):
+    print n.getCellpaths()
     print params
     print f, rest
     print
