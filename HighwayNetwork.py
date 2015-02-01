@@ -25,7 +25,7 @@ class HighwayNetwork:
   def __init__(self, cellPositions, flows, routes, threshold = 1e-4):
     self.cellPositions = cellPositions
     self.flows = [x for x in flows if x > threshold]
-    self.routes = [x for (i, x) in enumerate(routes) if flows[i] > threshold]
+    self.routes = [x[:] for (i, x) in enumerate(routes) if flows[i] > threshold]
     logging.info( "Calculating signal strength...")
     self.buildRSSI()
 
@@ -59,6 +59,7 @@ class HighwayNetwork:
         yield f, rest, (s, i, b)
 
   def deployCars(self, numCars, numDelays, tlimit=None):
+    self.deploys = set()
     cars = []
     for d in xrange(numDelays):
       # add numCars every timestep for numDelay timesteps
@@ -66,6 +67,7 @@ class HighwayNetwork:
       for c in xrange(numCars):
         # pick a route for each car according to flows
         route = weighted_choice(self.flows)
+        self.deploys.add(route)
         cars.append(delay + self.routes[route][:])
     shuffle(cars)
     # transpose to get where each car is at each timestep
