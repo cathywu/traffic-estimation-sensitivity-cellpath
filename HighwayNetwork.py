@@ -2,6 +2,7 @@ import ipdb
 from random import shuffle, random, uniform, randint, seed
 from math import log10
 from copy import deepcopy
+from itertools import product
 import logging
 
 
@@ -29,15 +30,32 @@ class HighwayNetwork:
     logging.info( "Calculating signal strength...")
     self.buildRSSI()
 
-  def go(self, numCars, numDelays, tlimit=None, spread=0, inertia=0, balancing=0, cellpaths=None):
+  def go(self, numCars, numDelays, tlimit=None, spread=None, inertia=None, balancing=None, cellpaths=None):
+    if spread is None:
+      spread = [0]
+    elif not isinstance(spread, (list, tuple)):
+      spread = [spread]
+
+    if inertia is None:
+      inertia = [0]
+    elif not isinstance(inertia, (list, tuple)):
+      inertia = [inertia]
+
+    if balancing is None:
+      balancing = [0]
+    elif not isinstance(balancing, (list, tuple)):
+      balancing = [balancing]
+
     logging.info( "Deploying cars...")
     self.deployCars(numCars, numDelays, tlimit)
-    logging.info( "Adding RF noise...")
-    self.addNoise(spread)
-    logging.info( "Determining tower assignment...")
-    self.assignTowers(inertia, balancing)
-    logging.info( "Done.")
-    return self.collect(numCars * numDelays, cellpaths = cellpaths)
+    for s in spread:
+      logging.info( "Adding RF noise (%f) ..." % s)
+      self.addNoise(s)
+      for i, b in product(inertia, balancing):
+        logging.info( "Determining tower assignment (inertia=%f, balancing=%f) ..." % (i, b))
+        self.assignTowers(i, b)
+        logging.info( "Done.")
+        yield self.collect(numCars * numDelays, cellpaths = cellpaths)
 
   def deployCars(self, numCars, numDelays, tlimit=None):
     cars = []
@@ -164,7 +182,8 @@ if __name__ == "__main__":
   """
   # Run simulation
   n = HighwayNetwork(cellPositions, flows, routes)
-  print n.go(200, 10, tlimit = 100, cellpaths=[ (34, 20, 67, 40, 42), (77, 74, 67, 42, 36, 42), (54, 72, 40, 67, 42, 36) ])
+  for f, rest in  n.go(200, 10, tlimit = 100, balancing = [0, .05, .1], cellpaths=[ (34, 20, 67, 40, 42), (77, 74, 67, 42, 36, 42), (54, 72, 40, 67, 42, 36) ]):
+    print f, rest
   '''
   # Print results
   for k, v in n.paths.iteritems():

@@ -105,22 +105,24 @@ def scenario(params=None):
     # data[4] = (1, 3, 0.2, [((3.5, 0.5, 6.5, 3.0), 1)], (2,2), 2.0)
     # TODO trials?
     data, graph, wp_trajs = generate_data_UE(data=config, SO=SO, NLP=args.NLP)
+
+    if 'error' in data:
+        return {'error' : data['error']}
+
     return args, data, graph, wp_trajs
 
 def add_noise(data, graph, wp_trajs, num_cars=100, num_delays=10,
-              tlimit=100):
+              tlimit=100,spreadlist=[0,0.03,1],inertialist=[0,0.03,0.1],
+              balancinglist=[0,0.03,0.1]):
     paths_sampled = generate_sampled_UE(graph,m=2)
     cp, cp_paths, cp_flow = zip(*wp_trajs)
     cp = [tuple(cpp) for cpp in cp]
     HN = HighwayNetwork(data['cell_pos'], data['x_true'], paths_sampled)
-    f, rest = HN.go(num_cars, num_delays, tlimit=tlimit, cellpaths=cp)
+    fs, rests = zip(*HN.go(num_cars, num_delays, tlimit=tlimit, cellpaths=cp,
+                            spread=spreadlist, inertia=inertialist,
+                            balancing=balancinglist))
 
-    # Replace f with new noisy f
-    data['f'] = array(f)
-
-    if 'error' in data:
-        return {'error' : data['error']}
-    return data
+    return fs, rests
 
 def solve(args, data, noisy=False):
     eq = 'CP' if args.use_CP else 'OD'
@@ -144,14 +146,31 @@ def experiment():
     logging.info('Control flow error: %0.4f' % \
                  output_control['percent flow allocated incorrectly'][-1])
     outputs = []
-    params = [(1,2,3)]
-    for (a,c,b) in params:
-        data_noisy = add_noise(data, graph, wp_trajs)
-        output = solve(args, data_noisy, noisy=True)
+
+    # spreadlist = (np.logspace(0,1,10, base=3)-1)/10
+    # inertialist = (np.logspace(0,1,10, base=3)-1)/10
+    # balancinglist = (np.logspace(0,1,10, base=3)-1)/10
+    num_cars = 1000
+    num_delays = 10
+    tlimit = 100
+
+    fs, rests = add_noise(data, graph, wp_trajs, num_cars=num_cars,
+                          num_delays=num_delays, tlimit=tlimit)
+    for f,rest in zip(fs, rests):
+        # Replace f with new noisy f
+        data['f'] = array(f)
+
+        output = solve(args, data, noisy=True)
         outputs.append(output)
         logging.info('Flow error: %0.4f' % \
                  output['percent flow allocated incorrectly'][-1])
     ipdb.set_trace()
+    return output_control, outputs
+
+def plot_results(output_control, outputs):
+    pass
+
+
 
 if __name__ == "__main__":
     # scenario()
