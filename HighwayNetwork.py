@@ -66,7 +66,7 @@ class HighwayNetwork:
       for c in xrange(numCars):
         # pick a route for each car according to flows
         route = weighted_choice(self.flows)
-        cars.append(delay + self.routes[route])
+        cars.append(delay + deepcopy(self.routes[route]))
     shuffle(cars)
     # transpose to get where each car is at each timestep
     self.timesteps = map(list, map(None, *cars))
@@ -182,15 +182,21 @@ if __name__ == "__main__":
       cellPositions.append((minx + random() * (maxx - minx), miny + random() * \
                             (maxy - miny)))
 
+  print cellPositions
   """
   Simulation
   """
   # Run simulation
+  index=2
+  flows = [1]
+  routes = routes[index:index+1]
   n = HighwayNetwork(cellPositions, flows, routes)
-  for f, rest, params in  n.go(200, 10, tlimit = 100, inertia=[0, 0.02, 0.5], balancing = [0, .02, .05], cellpaths=[ (34, 20, 67, 40, 42), (77, 74, 67, 42, 36, 42), (54, 72, 40, 67, 42, 36) ]):
-    print n.getCellpaths()
-    print params
-    print f, rest
+  #for f, rest, params in  n.go(200, 10, tlimit = 100, inertia=[0, 0.02, 0.5], balancing = [0, .02, .05], cellpaths=[ (34, 20, 67, 40, 42), (77, 74, 67, 42, 36, 42), (54, 72, 40, 67, 42, 36) ]):
+  for f, rest, params in  n.go(200, 10, tlimit = 100, spread=[0, 0.01, .05, .1], inertia=[0], cellpaths=[ (34, 20, 67, 40, 42), (77, 74, 67, 42, 36, 42), (54, 72, 40, 67, 42, 36) ]):
+    print "spread = %f, inertia = %f, balancing = %f" % params
+    for cp, count in n.paths.iteritems():
+      print count, ":", cp
+    #print f, rest
     print
   '''
   # Print results
