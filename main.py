@@ -117,6 +117,7 @@ def add_noise(data, graph, wp_trajs, num_cars=100, num_delays=10,
     cp, cp_paths, cp_flow = zip(*wp_trajs)
     cp = [tuple(cpp) for cpp in cp]
     HN = HighwayNetwork(data['cell_pos'], data['x_true'], paths_sampled)
+    # cp = HN.getCellpaths()
     HN_data = HN.go(num_cars, num_delays, tlimit=tlimit, cellpaths=cp,
                             spread=spreadlist, inertia=inertialist,
                             balancing=balancinglist)
@@ -153,9 +154,9 @@ def experiment():
     num_cars = 1000
     num_delays = 10
     tlimit = 100
-    spreadlist = [0.2,0.5]
-    inertialist = [0.2,0.5]
-    balancinglist = [0.2,0.5]
+    spreadlist = [0, 0.2,0.5]
+    inertialist = [0, 0.2,0.5]
+    balancinglist = [0, 0.02,0.05]
 
     HN_data = add_noise(data, graph, wp_trajs, num_cars=num_cars,
                           num_delays=num_delays, tlimit=tlimit,
@@ -163,9 +164,9 @@ def experiment():
                           balancinglist=balancinglist)
     for f,rest,(s,i,b) in HN_data:
         # Replace f with new noisy f
-        data['f'] = array(f)
-
         ipdb.set_trace()
+
+        data['f'] = array(f)
 
         output = solve(args, data, noisy=True)
         outputs.append(output)
@@ -179,8 +180,12 @@ def experiment():
 def plot_results(output_control, outputs):
     pass
 
-
-
 if __name__ == "__main__":
     # scenario()
+    import sys, random
+    # myseed = random.randint(0, sys.maxint)
+    myseed = 4294967295
+    print "Random seed:", myseed
+    np.random.seed(myseed)
+    random.seed(myseed)
     experiment()
