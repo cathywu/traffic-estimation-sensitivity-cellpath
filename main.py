@@ -85,7 +85,7 @@ def generate_data_UE(data=None, export=False, SO=False, demand=3, m=20,
             fname = '%s/SO_graph.mat' % c.DATA_DIR
         scipy.io.savemat(fname, data, oned_as='column')
 
-    return data, graph, wp_trajs
+    return data, graph
 
 def scenario(params=None,m=2):
     # use argparse object as default template
@@ -95,32 +95,17 @@ def scenario(params=None,m=2):
         logging.basicConfig(level=eval('logging.'+args.log))
     if params is not None:
         args = update_args(args, params)
-
     print args
 
     SO = True if args.model == 'SO' else False
     # N0, N1, scale, regions, res, margin
     config = (args.NB, args.NL, 0.2, [((3.5, 0.5, 6.5, 3.0), args.NS)], (6,3), 2.0)
-    # data[0] = (20, 40, 0.2, [((3.5, 0.5, 6.5, 3.0), 20)], (12,6), 2.0)
-    # data[1] = (10, 20, 0.2, [((3.5, 0.5, 6.5, 3.0), 10)], (10,5), 2.0)
-    # data[2] = (5, 10, 0.2, [((3.5, 0.5, 6.5, 3.0), 5)], (6,3), 2.0)
-    # data[3] = (3, 5, 0.2, [((3.5, 0.5, 6.5, 3.0), 2)], (4,2), 2.0)
-    # data[4] = (1, 3, 0.2, [((3.5, 0.5, 6.5, 3.0), 1)], (2,2), 2.0)
-    # TODO trials?
-    data, graph, wp_trajs = generate_data_UE(data=config, SO=SO, NLP=args.NLP,m=m)
+    data, graph = generate_data_UE(data=config, SO=SO, NLP=args.NLP,m=m)
 
     if 'error' in data:
         return {'error' : data['error']}
 
-    return args, data, graph, wp_trajs
-
-def add_noise(data, paths_sampled, cps, num_cars=100, num_delays=10, m=2,
-              tlimit=100,spreadlist=None, inertialist=None, balancinglist=None):
-    HN = HighwayNetwork(data['cell_pos'], data['x_true'], paths_sampled)
-    HN_data = HN.go(num_cars, num_delays, tlimit=tlimit, cellpaths=cps,
-                            spread=spreadlist, inertia=inertialist,
-                            balancing=balancinglist)
-    return HN_data
+    return args, data, graph
 
 def solve(args, data, noisy=False):
     eq = 'CP' if args.use_CP else 'OD'
@@ -170,19 +155,21 @@ def construct_U(data,paths_sampled):
 
     return U, cp_canonical
 
-def test_U(data, paths_sampled, cps, U, num_cars=1000, num_delays=10, tlimit=100):
+def test_U(data, paths_sampled, cps, U, num_cars=1000, num_delays=10):
     HN = HighwayNetwork(data['cell_pos'], data['x_true'], paths_sampled)
     f,rest,(s,i,b) = next(HN.go(num_cars, num_delays, cellpaths=cps,
                     spread=[0], inertia=[0], balancing=[0]))
-    x = data['x_true']
-    logging.info('||Ux-f|| = %0.4f' % la.norm(U.dot(x)-f))
+    x_true = HN.x_true
+    # x = data['x_true']
+    logging.info('Noiseless ||Ux-f|| = %0.4f' % la.norm(U.dot(x_true)-f))
     return f
 
 def experiment(m=2,fname=None):
     if fname is None:
-        args, data, graph, wp_trajs = scenario(m=20)
+        args, data, graph = scenario(m=20)
         paths_sampled = generate_sampled_UE(graph,m=m)
         U, cp_canonical = construct_U(data,paths_sampled)
+        data['U'] = U
 
         f_true = test_U(data, paths_sampled, cp_canonical, U)
         with open('%s/temp.pkl' % c.DATA_DIR, 'w') as out:
@@ -192,16 +179,21 @@ def experiment(m=2,fname=None):
             (args, data, paths_sampled, cp_canonical, f_true) = pickle.load(fin)
         if args.log in c.ACCEPTED_LOG_LEVELS:
             logging.basicConfig(level=eval('logging.'+args.log))
+        U,f,x = data['U'], f_true, data['x_true']
+        logging.info('Init, ||Ux-f|| = %0.4f' % la.norm(U.dot(x)-f))
 
     # spreadlist = (np.logspace(0,1,10, base=3)-1)/10
     # inertialist = (np.logspace(0,1,10, base=3)-1)/10
     # balancinglist = (np.logspace(0,1,10, base=3)-1)/10
-    num_cars = 1000
+    num_cars = 100
     num_delays = 10
-    tlimit = 100
-    spreadlist = [0, 0.02,0.05]
-    inertialist = [0, 0.02,0.05]
-    balancinglist = [0, 0.002,0.005]
+    spreadlist = [0, 0.05, 0.1]
+    inertialist = [0, 0.2, 0.4, 0.6, 0.8]
+    balancinglist = [0, 0.01, 0.02, 0.03, 0.04]
+
+    spreadlist = [0]
+    inertialist = [0, 0.2, 0.4, 0.6, 0.8]
+    balancinglist = [0]
 
     outputs = []
     f_orig = data['f']
@@ -209,24 +201,30 @@ def experiment(m=2,fname=None):
     # logging.info('Control flow error: %0.4f' % \
     #              output_control['percent flow allocated incorrectly'][-1])
 
-    logging.info('Initializing noise..')
-    HN_data = add_noise(data, paths_sampled, cp_canonical, num_cars=num_cars,
-                        m=m, num_delays=num_delays, tlimit=tlimit,
-                        spreadlist=spreadlist, inertialist=inertialist,
-                        balancinglist=balancinglist)
+    HN = HighwayNetwork(data['cell_pos'], data['x_true'], paths_sampled)
+    HN_data = HN.go(num_cars, num_delays, cellpaths=cp_canonical,
+                    spread=spreadlist, inertia=inertialist,
+                    balancing=balancinglist)
+    # Noiseless-ify
+    data['x_true'] = HN.x_true
+    data['b'] = data['A'].dot(data['x_true'])
+    data['d'] = data['T'].dot(data['x_true'])
 
-    logging.info('Noise added. Solving..')
-    for f,rest,(s,i,b) in HN_data:
-        # Replace f with new noisy f
-        data['f'] = array(f)
-        ipdb.set_trace()
-
-        output = solve(args, data, noisy=True)
-        outputs.append(output)
-        logging.info('Params: (%0.3f,%0.3f,%0.3f)' % (s,i,b))
-        logging.info('Flow error: %0.4f' % \
-                 output['percent flow allocated incorrectly'][-1])
-        logging.info('Rest: %0.4f' % rest)
+    with open('%s/%s' % (c.DATA_DIR,'results.txt'), 'w') as fres:
+        for f,rest,(s,i,b) in HN_data:
+            # Replace f with new noisy f
+            data['f'] = array(f)
+            # ipdb.set_trace()
+            output = solve(args, data, noisy=True)
+            outputs.append((output,f,rest,(s,i,b)))
+            x_error = output['percent flow allocated incorrectly'][-1]
+            logging.info('Params: (%0.3f,%0.3f,%0.3f)' % (s,i,b))
+            logging.info('Flow error: %0.4f' % x_error)
+            logging.info('Rest: %0.4f' % rest)
+            U,f,x = data['U'], data['f'], data['x_true']
+            Uxf = la.norm(U.dot(x)-f)
+            fres.write("%0.8f, %0.8f, %0.8f, %0.8f, %0.8f, %0.8f, %0.8f\n" % \
+                       (s, i, b, x_error, np.sum(data['x_true']), rest, Uxf))
     ipdb.set_trace()
     # return output_control, outputs
     return outputs
@@ -238,8 +236,9 @@ if __name__ == "__main__":
     # scenario()
     import sys, random
     # myseed = random.randint(0, sys.maxint)
-    myseed = 4294967295
+    myseed = 4253647295
     print "Random seed:", myseed
     np.random.seed(myseed)
     random.seed(myseed)
     experiment(m=10,fname='temp.pkl')
+    # experiment(m=10)
