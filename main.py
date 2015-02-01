@@ -211,6 +211,7 @@ def experiment(m=2,fname=None):
     data['d'] = data['T'].dot(data['x_true'])
 
     with open('%s/%s' % (c.DATA_DIR,'results.txt'), 'w') as fres:
+        fres.write('spread, inertia, balancing, x flow error, x total, rest, ||Ux-f||\n')
         for f,rest,(s,i,b) in HN_data:
             # Replace f with new noisy f
             data['f'] = array(f)
