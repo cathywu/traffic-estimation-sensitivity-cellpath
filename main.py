@@ -187,12 +187,12 @@ def experiment(m=2,fname=None):
     # balancinglist = (np.logspace(0,1,10, base=3)-1)/10
     num_cars = 100
     num_delays = 10
-    spreadlist = [0, 0.5, 1]
+    spreadlist = [0, 0.05, 0.1]
     inertialist = [0, 0.2, 0.4, 0.6, 0.8]
     balancinglist = [0, 0.01, 0.02, 0.03, 0.04]
 
-    spreadlist = [0, 0.5, 1]
-    inertialist = [0]
+    spreadlist = [0]
+    inertialist = [0, 0.2, 0.4, 0.6, 0.8]
     balancinglist = [0]
 
     outputs = []
@@ -205,7 +205,10 @@ def experiment(m=2,fname=None):
     HN_data = HN.go(num_cars, num_delays, cellpaths=cp_canonical,
                     spread=spreadlist, inertia=inertialist,
                     balancing=balancinglist)
+    # Noiseless-ify
     data['x_true'] = HN.x_true
+    data['b'] = data['A'].dot(data['x_true'])
+    data['d'] = data['T'].dot(data['x_true'])
 
     with open('%s/%s' % (c.DATA_DIR,'results.txt'), 'w') as fres:
         for f,rest,(s,i,b) in HN_data:
@@ -233,9 +236,9 @@ if __name__ == "__main__":
     # scenario()
     import sys, random
     # myseed = random.randint(0, sys.maxint)
-    myseed = 4254647295
+    myseed = 4253647295
     print "Random seed:", myseed
     np.random.seed(myseed)
     random.seed(myseed)
-    # experiment(m=10,fname='temp.pkl')
-    experiment(m=10)
+    experiment(m=10,fname='temp.pkl')
+    # experiment(m=10)
