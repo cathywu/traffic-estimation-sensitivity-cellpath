@@ -21,10 +21,26 @@ def randrange(n, vmin, vmax):
     return (vmax-vmin)*np.random.rand(n) + vmin
 
 def plot_results(xs,ys,zs, x_label='X label', y_label='Y label',
-                     z_label='Z label', plot_label='Plot label', c='b'):
+                 z_label='Z label', plot_label='Plot label', c='b'):
     # ax = fig.add_subplot(111, projection='3d')
     ax = fig.gca(projection='3d')
     ax.plot(xs, ys, zs, 'o', c=c, marker='o', label=plot_label)
+
+    ax.set_xlabel(x_label)
+    ax.set_ylabel(y_label)
+    ax.set_zlabel(z_label)
+    # ax.legend()
+
+def plot_results_wireframe(xs,ys,zs, x_label='X label', y_label='Y label',
+                 z_label='Z label', plot_label='Plot label', c='b'):
+    # ax = fig.add_subplot(111, projection='3d')
+    ax = fig.gca(projection='3d')
+    XS,YS = sorted(list(set(xs))),sorted(list(set(ys)))
+    X,Y = np.meshgrid(XS,YS)
+    Z = np.empty_like(X)
+    for (x,y,z) in zip(xs,ys,zs):
+        Z[YS.index(y),XS.index(x)] = z
+    ax.plot_wireframe(X, Y, Z, label=plot_label, color=c)
 
     ax.set_xlabel(x_label)
     ax.set_ylabel(y_label)
@@ -48,16 +64,27 @@ if __name__ == "__main__":
     mpl.rcParams['legend.fontsize'] = 10
 
     colors = ['b','g','r','c','m','y','k']
+    spread_order = sorted(spread_results.keys())
 
     # Plot a layer for each spread level
     fig = plt.figure()
-    for ((k,v),c) in zip(spread_results.iteritems(),colors):
+    for (k,c) in zip(spread_order,colors):
+        v = spread_results[k]
         xs,ys,zs = zip(*[(x.inertia,x.balancing,x.x_flow_error) for x in v])
-        plot_results(xs,ys,zs, x_label='Inertia', y_label='Balancing',
+        plot_results_wireframe(xs,ys,zs, x_label='Inertia', y_label='Balancing',
                      z_label='Error', plot_label='Spread = %s' % k, c=c)
         plt.hold(True)
-
     plt.legend()
+
+    fig = plt.figure()
+    for (k,c) in zip(spread_order,colors):
+        v = spread_results[k]
+        xs,ys,zs = zip(*[(x.inertia,x.balancing,x.x_flow_error) for x in v])
+        plot_results(xs,ys,zs, x_label='Inertia', y_label='Balancing',
+                            z_label='Error', plot_label='Spread = %s' % k, c=c)
+        plt.hold(True)
+    plt.legend()
+
     plt.show()
     ipdb.set_trace()
 
