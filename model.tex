@@ -1,0 +1,37 @@
+\documentclass[twocolumn,10pt]{article}
+\usepackage{amsmath}
+
+\begin{document}
+
+\subsection{System model}
+This work models the assignment of individual vehicles to cell towers with an effective received signal strength (eRSS) based decision process.  This eRSS between a vehicle $v$ and a cell tower $t$ is calculated from the received power by introducing tower handoff dynamics as noise penalties;
+each vehicle gets assigned to the cell tower with the highest eRSS value at each time point in the simulation.
+All towers are assumed to output with the same transmit power, so eRSS can be calculated in dB as: \begin{eqnarray}
+  eRSS_{v-t} & = & \left( \frac{P_{RX_v}}{P_{TX_t}} \right)_{dB} 
+                   + P_{handoff_{v-t}} \\
+  & = & P_{d_{v-t}} +P_{int} + P_{hyst_{v-t}} + P_{load_t}.
+\end{eqnarray}
+
+In this equation, the actual received signal strength is composed of two parts, $P_d$ and $P_{int}$.  The attenuation due to path loss is given by: \begin{equation}
+  P_{d_{v-t}} = -10 \gamma \log_{10} d_{v-t},
+\end{equation}
+where $d_{v-t}$ is the distance between the vehicle and the cell tower, and $\gamma$ is the path loss exponent.  The additional attenuation due to interference, multipath effects, and other RF noise is wrapped up into a uniformly distributed random penalty: \begin{equation}
+  P_{int} = -\alpha \cdot \mathrm{Unif}(0,1).
+\end{equation}
+
+The dynamics of the tower handoff, $P_{handoff}$, are modelled using two parameters.  $P_{hyst}$ represents an amount of hysteresis in the system by boosting the eRSS of the currently associated tower, biasing individual vehicles against switching towers: \begin{equation}
+  P_{hyst_{v-t}} = \begin{cases}
+    \beta & \mathrm{if~} v \mathrm{~is~already~connected~to~} t, \\
+    0 & \mathrm{otherwise.}
+  \end{cases}
+\end{equation}
+$P_{load}$ represents the load balancing efforts to distribute usage across the cell network, adding an eRSS penalty to heavily loaded towers: \begin{equation}
+  P_{load_t} = -\xi \cdot N_{t},
+\end{equation}
+where $N_t$ is the number of other vehicles already connected to tower $t$.  The four parameters $\{\gamma, \alpha, \beta, \xi\}$ can be scaled by the first to get our final parameter vector $\phi = \{a, b, c\} = \{\alpha/\gamma, \beta/\gamma, \xi/\gamma\}$ over which we conduct our sensitivity analysis, evaluating the relative impacts of hysteresis and load balancing in the presence of RF noise on route flow estimation.
+
+\subsection{Limitations}
+  
+In this work, we only consider hard handoffs, wherein each vehicle is connected to exactly one cell tower at all times.  The load balancing is represented by a linear penalty on tower utilization, which ignores nonlinear effects such as maximum tower capacity.  The units are arbitrarily scaled, and so require manual tuning to determine appropriate relative weights.
+
+\end{document}
