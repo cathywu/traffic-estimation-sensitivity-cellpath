@@ -31,10 +31,9 @@ def plot_results(xs,ys,zs, x_label='X label', y_label='Y label',
     ax.set_zlabel(z_label)
     # ax.legend()
 
-def plot_results_wireframe(xs,ys,zs, x_label='X label', y_label='Y label',
+def plot_results_wireframe(ax,xs,ys,zs, x_label='X label', y_label='Y label',
                  z_label='Z label', plot_label='Plot label', c='b'):
     # ax = fig.add_subplot(111, projection='3d')
-    ax = fig.gca(projection='3d')
     XS,YS = sorted(list(set(xs))),sorted(list(set(ys)))
     X,Y = np.meshgrid(XS,YS)
     Z = np.empty_like(X)
@@ -68,20 +67,21 @@ if __name__ == "__main__":
 
     # Plot a layer for each spread level
     fig = plt.figure()
+    plt1 = fig.add_subplot(1,3,1,projection='3d')
+    plt2 = fig.add_subplot(1,3,2,projection='3d')
+    plt3 = fig.add_subplot(1,3,3,projection='3d')
     for (k,c) in zip(spread_order,colors):
         v = spread_results[k]
-        xs,ys,zs = zip(*[(x.inertia,x.balancing,x.x_flow_error) for x in v])
-        plot_results_wireframe(xs,ys,zs, x_label='Inertia', y_label='Balancing',
-                     z_label='Error', plot_label='Spread = %s' % k, c=c)
-        plt.hold(True)
-    plt.legend()
-
-    fig = plt.figure()
-    for (k,c) in zip(spread_order,colors):
-        v = spread_results[k]
-        xs,ys,zs = zip(*[(x.inertia,x.balancing,x.x_flow_error) for x in v])
-        plot_results(xs,ys,zs, x_label='Inertia', y_label='Balancing',
-                            z_label='Error', plot_label='Spread = %s' % k, c=c)
+        xs,ys,z1s,z2s = zip(*[(x.inertia,x.balancing,x.x_flow_error,
+                               x.rest/x.x_total) for x in v])
+        z3s = [b-a for (a,b) in zip(z1s,z2s)]
+        # ax = fig.gca(projection='3d')
+        plot_results_wireframe(plt1,xs,ys,z1s, x_label='Inertia', y_label='Balancing',
+                     z_label='% flow error', plot_label='Spread = %s' % k, c=c)
+        plot_results_wireframe(plt2,xs,ys,z2s, x_label='Inertia', y_label='Balancing',
+                               z_label='% unassigned', plot_label='Spread = %s' % k, c=c)
+        plot_results_wireframe(plt3,xs,ys,z3s, x_label='Inertia', y_label='Balancing',
+                               z_label='% in dictionary error', plot_label='Spread = %s' % k, c=c)
         plt.hold(True)
     plt.legend()
 
