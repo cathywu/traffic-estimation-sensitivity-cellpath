@@ -44,14 +44,15 @@ def generate_sampled_UE(g,m=2):
     paths = g.get_paths()
     start_pos, end_pos = g.get_links()
     free_flow_travel_time = array(g.get_ffdelays())
-    paths_sampled = sample_paths(paths, start_pos, end_pos, free_flow_travel_time, m=2)
+    paths_sampled = sample_paths(paths, start_pos, end_pos,
+                                 free_flow_travel_time, m=2)
     return paths_sampled
 
-def generate_data_UE(data=None, export=False, SO=False, demand=3, N=30,
+def generate_data_UE(data=None, export=False, SO=False, demand=3, m=20,
                           withODs=False, NLP=122):
     path='los_angeles_data_2.mat'
     graph, x_true, l, path_wps, wp_trajs, obs, wp = synthetic_data(data, SO, demand,
-                                                    N, path=path, fast=False)
+                                                    m=m, path=path, fast=False)
     x_true = array(x_true)
     obs=obs[0]
     A_full = path_solver.linkpath_incidence(graph)
@@ -84,7 +85,7 @@ def generate_data_UE(data=None, export=False, SO=False, demand=3, N=30,
 
     return data, graph, wp_trajs
 
-def scenario(params=None):
+def scenario(params=None,m=2):
     # use argparse object as default template
     p = parser()
     args = p.parse_args()
@@ -104,16 +105,17 @@ def scenario(params=None):
     # data[3] = (3, 5, 0.2, [((3.5, 0.5, 6.5, 3.0), 2)], (4,2), 2.0)
     # data[4] = (1, 3, 0.2, [((3.5, 0.5, 6.5, 3.0), 1)], (2,2), 2.0)
     # TODO trials?
-    data, graph, wp_trajs = generate_data_UE(data=config, SO=SO, NLP=args.NLP)
+    data, graph, wp_trajs = generate_data_UE(data=config, SO=SO, NLP=args.NLP,
+                                             m=m)
 
     if 'error' in data:
         return {'error' : data['error']}
 
     return args, data, graph, wp_trajs
 
-def add_noise(data, graph, wp_trajs, num_cars=100, num_delays=10,
+def add_noise(data, graph, wp_trajs, num_cars=100, num_delays=10, m=2,
               tlimit=100,spreadlist=None, inertialist=None, balancinglist=None):
-    paths_sampled = generate_sampled_UE(graph,m=2)
+    paths_sampled = generate_sampled_UE(graph,m=m)
     cp, cp_paths, cp_flow = zip(*wp_trajs)
     cp = [tuple(cpp) for cpp in cp]
     HN = HighwayNetwork(data['cell_pos'], data['x_true'], paths_sampled)
@@ -140,8 +142,8 @@ def solve(args, data, noisy=False):
 
     return output
 
-def experiment():
-    args, data, graph, wp_trajs = scenario()
+def experiment(m=2):
+    args, data, graph, wp_trajs = scenario(m=m)
     # output_control = solve(args, data)
     # logging.info('Control flow error: %0.4f' % \
     #              output_control['percent flow allocated incorrectly'][-1])
@@ -158,7 +160,7 @@ def experiment():
     inertialist = [0, 0.02,0.05]
     balancinglist = [0, 0.002,0.005]
 
-    HN_data = add_noise(data, graph, wp_trajs, num_cars=num_cars,
+    HN_data = add_noise(data, graph, wp_trajs, num_cars=num_cars, m=m,
                           num_delays=num_delays, tlimit=tlimit,
                           spreadlist=spreadlist, inertialist=inertialist,
                           balancinglist=balancinglist)
@@ -189,4 +191,4 @@ if __name__ == "__main__":
     print "Random seed:", myseed
     np.random.seed(myseed)
     random.seed(myseed)
-    experiment()
+    experiment(m=2)
