@@ -186,7 +186,7 @@ def experiment(m=2,fname=None):
         U, cp_canonical = construct_U(data,paths_sampled)
 
         f_true = test_U(data, paths_sampled, cp_canonical, U)
-        with open('%s/%s' % (c.DATA_DIR,fname), 'w') as out:
+        with open('%s/temp.pkl' % c.DATA_DIR, 'w') as out:
             pickle.dump((args, data, paths_sampled, cp_canonical, f_true), out)
     else:
         with open('%s/%s' % (c.DATA_DIR,fname)) as fin:
