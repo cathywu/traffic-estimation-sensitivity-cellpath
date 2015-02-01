@@ -185,15 +185,15 @@ def experiment(m=2,fname=None):
     # spreadlist = (np.logspace(0,1,10, base=3)-1)/10
     # inertialist = (np.logspace(0,1,10, base=3)-1)/10
     # balancinglist = (np.logspace(0,1,10, base=3)-1)/10
-    num_cars = 100
+    num_cars = 1000
     num_delays = 10
     spreadlist = [0, 0.05, 0.1]
-    inertialist = [0, 0.2, 0.4, 0.6, 0.8]
-    balancinglist = [0, 0.01, 0.02, 0.03, 0.04]
+    inertialist = [0, 0.05, 0.1, 0.2, 0.3]
+    balancinglist = [0, 0.001, 0.002, 0.003, 0.004]
 
-    spreadlist = [0]
-    inertialist = [0, 0.2, 0.4, 0.6, 0.8]
-    balancinglist = [0]
+    # spreadlist = [0]
+    # inertialist = [0]
+    # balancinglist = [0, 0.001, 0.002, 0.003, 0.004]
 
     outputs = []
     f_orig = data['f']
@@ -236,9 +236,9 @@ if __name__ == "__main__":
     # scenario()
     import sys, random
     # myseed = random.randint(0, sys.maxint)
-    myseed = 4253647295
+    myseed = 4253648295
     print "Random seed:", myseed
     np.random.seed(myseed)
     random.seed(myseed)
-    experiment(m=10,fname='temp.pkl')
-    # experiment(m=10)
+    # experiment(m=10,fname='temp.pkl')
+    experiment(m=10)
