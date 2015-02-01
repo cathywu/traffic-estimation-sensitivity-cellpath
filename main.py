@@ -142,9 +142,9 @@ def solve(args, data, noisy=False):
 
 def experiment():
     args, data, graph, wp_trajs = scenario()
-    output_control = solve(args, data)
-    logging.info('Control flow error: %0.4f' % \
-                 output_control['percent flow allocated incorrectly'][-1])
+    # output_control = solve(args, data)
+    # logging.info('Control flow error: %0.4f' % \
+    #              output_control['percent flow allocated incorrectly'][-1])
     outputs = []
     f_orig = data['f']
 
@@ -154,9 +154,9 @@ def experiment():
     num_cars = 1000
     num_delays = 10
     tlimit = 100
-    spreadlist = [0, 0.2,0.5]
-    inertialist = [0, 0.2,0.5]
-    balancinglist = [0, 0.02,0.05]
+    spreadlist = [0, 0.02,0.05]
+    inertialist = [0, 0.02,0.05]
+    balancinglist = [0, 0.002,0.005]
 
     HN_data = add_noise(data, graph, wp_trajs, num_cars=num_cars,
                           num_delays=num_delays, tlimit=tlimit,
@@ -175,7 +175,8 @@ def experiment():
                  output['percent flow allocated incorrectly'][-1])
         logging.info('Rest: %0.4f' % rest)
     ipdb.set_trace()
-    return output_control, outputs
+    # return output_control, outputs
+    return outputs
 
 def plot_results(output_control, outputs):
     pass
