@@ -1,10 +1,10 @@
+from __future__ import division
 import ipdb
 from random import shuffle, random, uniform, randint, seed
 from math import log10
 from copy import deepcopy
 from itertools import product
 import logging
-
 
 def uniq(seq):
     last = [None]
