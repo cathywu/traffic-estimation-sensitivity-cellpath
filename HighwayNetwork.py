@@ -29,7 +29,8 @@ class HighwayNetwork:
     logging.info( "Calculating signal strength...")
     self.buildRSSI()
 
-  def go(self, numCars, numDelays, tlimit=None, spread=None, inertia=None, balancing=None, cellpaths=None):
+  def go(self, numCars, numDelays, tlimit=None, spread=None, inertia=None,
+         balancing=None, cellpaths=None):
     if spread is None:
       spread = [0]
     elif not isinstance(spread, (list, tuple)):

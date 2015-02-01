@@ -1,5 +1,6 @@
 import ipdb
 
+import pickle
 import numpy as np
 import numpy.linalg as la
 import scipy.io
@@ -52,8 +53,8 @@ def generate_sampled_UE(g,m=2):
 def generate_data_UE(data=None, export=False, SO=False, demand=3, m=20,
                           withODs=False, NLP=122):
     path='los_angeles_data_2.mat'
-    graph, x_true, l, path_wps, wp_trajs, obs, wp = synthetic_data(data, SO, demand,
-                                                    m=m, path=path, fast=False)
+    graph, x_true, l, path_wps, wp_trajs, obs, wp = synthetic_data(data, SO,
+                                            demand, m=m, path=path, fast=False)
     x_true = array(x_true)
     obs=obs[0]
     A_full = path_solver.linkpath_incidence(graph)
@@ -106,8 +107,7 @@ def scenario(params=None,m=2):
     # data[3] = (3, 5, 0.2, [((3.5, 0.5, 6.5, 3.0), 2)], (4,2), 2.0)
     # data[4] = (1, 3, 0.2, [((3.5, 0.5, 6.5, 3.0), 1)], (2,2), 2.0)
     # TODO trials?
-    data, graph, wp_trajs = generate_data_UE(data=config, SO=SO, NLP=args.NLP,
-                                             m=m)
+    data, graph, wp_trajs = generate_data_UE(data=config, SO=SO, NLP=args.NLP,m=m)
 
     if 'error' in data:
         return {'error' : data['error']}
@@ -153,7 +153,7 @@ def simplex(cp_list,cp_canonical):
     U = to_sp(spmatrix(1.0, I, J, (n, m)))
     return U
 
-def construct_U(data,paths_sampled,cps):
+def construct_U(data,paths_sampled):
     cp_list = []
     for path in paths_sampled:
         HN = HighwayNetwork(data['cell_pos'], [1], [path])
@@ -175,24 +175,22 @@ def test_U(data, paths_sampled, cps, U, num_cars=1000, num_delays=10, tlimit=100
     f,rest,(s,i,b) = next(HN.go(num_cars, num_delays, cellpaths=cps,
                     spread=[0], inertia=[0], balancing=[0]))
     x = data['x_true']
-    logging.info('||Ux-f|| = %0.4f' % la.norm(U.dot(x)-data['f']))
-    logging.info('||Ux-fnoise|| = %0.4f' % la.norm(U.dot(x)-f))
+    logging.info('||Ux-f|| = %0.4f' % la.norm(U.dot(x)-f))
     ipdb.set_trace()
+    return f
 
-def experiment(m=2):
-    args, data, graph, wp_trajs = scenario(m=20)
-    # output_control = solve(args, data)
-    # logging.info('Control flow error: %0.4f' % \
-    #              output_control['percent flow allocated incorrectly'][-1])
-    outputs = []
-    f_orig = data['f']
+def experiment(m=2,fname=None):
+    if fname is None:
+        args, data, graph, wp_trajs = scenario(m=20)
+        paths_sampled = generate_sampled_UE(graph,m=m)
+        U, cp_canonical = construct_U(data,paths_sampled)
 
-    paths_sampled = generate_sampled_UE(graph,m=m)
-    cps, cp_paths, cp_flow = zip(*wp_trajs)
-    cps = [tuple(cpp) for cpp in cps]
-    U, cp_canonical = construct_U(data,paths_sampled,cps)
-
-    test_U(data, paths_sampled, cp_canonical, U)
+        f_true = test_U(data, paths_sampled, cp_canonical, U)
+        with open('%s/%s' % (c.DATA_DIR,fname), 'w') as out:
+            pickle.dump((args, data, paths_sampled, cp_canonical, f_true), out)
+    else:
+        with open('%s/%s' % (c.DATA_DIR,fname)) as fin:
+            (args, data, paths_sampled, cp_canonical, f_true) = pickle.load(fin)
 
     # spreadlist = (np.logspace(0,1,10, base=3)-1)/10
     # inertialist = (np.logspace(0,1,10, base=3)-1)/10
@@ -203,6 +201,12 @@ def experiment(m=2):
     spreadlist = [0, 0.02,0.05]
     inertialist = [0, 0.02,0.05]
     balancinglist = [0, 0.002,0.005]
+
+    outputs = []
+    f_orig = data['f']
+    # output_control = solve(args, data)
+    # logging.info('Control flow error: %0.4f' % \
+    #              output_control['percent flow allocated incorrectly'][-1])
 
     HN_data = add_noise(data, paths_sampled, cp_canonical, num_cars=num_cars,
                         m=m, num_delays=num_delays, tlimit=tlimit,
@@ -236,4 +240,4 @@ if __name__ == "__main__":
     print "Random seed:", myseed
     np.random.seed(myseed)
     random.seed(myseed)
-    experiment(m=10)
+    experiment(m=10,fname='temp.pkl')
