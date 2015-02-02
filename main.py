@@ -262,5 +262,5 @@ if __name__ == "__main__":
     print "Random seed:", myseed
     np.random.seed(myseed)
     random.seed(myseed)
-    experiment(m=10,fname='temp.pkl')
-    # experiment(m=10)
+    # experiment(m=10,fname='temp.pkl')
+    experiment(m=10)
