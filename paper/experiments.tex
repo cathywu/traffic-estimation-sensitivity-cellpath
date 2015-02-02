@@ -19,7 +19,7 @@ In each of the scenarios, we first compute a feasible route flow $x$ for the use
 
 \subsection{Preliminary results}
 
-We present preliminary numerical results in Figure \ref{fig:results1}.
+We present preliminary numerical results in Figure \ref{fig:results1} (omitting the denser experiment due to space limitations). In both experiments, there is a strong positive correlation ($R=0.78$ and $R=0.74$, respectively) between the load balancing gain and percent error. In the first experiment, the hysteresis margin gain causes an interesting change in route flow error, first increasing then decreasing, in the presence of other types of noise. We suspect the decrease in percent error is a side effect of the delay in switching cell towers when a vehicle moves by decreasing the chance of connecting to an incorrect tower. In the denser experiment, the route flow error is much more sensitive to the hysteresis margin gain, which can be explained by switching delays resulting in entirely missed cells, as the vehicle traverses its trajectory.
 
 \begin{figure}[h!]
   \centering
@@ -27,8 +27,4 @@ We present preliminary numerical results in Figure \ref{fig:results1}.
   \caption{\footnotesize{This plot show the initial findings for $N=300$. In general, the percent route flow error increases as the interference increases. The percent route flow error first increase then decreases as the hysteresis margin is increased. The load balancing parameter indicates positive correlation with percent route flow error.}}
   \label{fig:results1}
 \end{figure}
-
-“sparser”: smallest number of cell towers for which route flow accuracy is pretty good ($<5\%$ error); hopefully somewhat robust to handoff model
-
-“city center”: super dense number of cell towers; handoff model should cause tons of problems here quickly
 

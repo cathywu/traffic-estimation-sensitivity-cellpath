@@ -51,7 +51,9 @@ def plot_results_wireframe(ax,xs,ys,zs, x_label='X label', y_label='Y label',
     ax.set_ylabel(y_label)
     ax.set_zlabel(z_label)
     # ax.legend()
-    ipdb.set_trace()
+    print plot_label
+    print 'Corrcoef (balancing): %s' % np.corrcoef(Y.flatten(),Z.flatten())[0][1]
+    print 'Corrcoef (inertia): %s' % np.corrcoef(X.flatten(),Z.flatten())[0][1]
 
 if __name__ == "__main__":
     results_file = "results_4253648295_300towers.txt"
@@ -71,6 +73,13 @@ if __name__ == "__main__":
     #             spread_results[s] = [r]
 
     # FOR NEW EXPERIMENTS (new data format)
+    with open('%s/%s' % (c.DATA_DIR,results_file)) as f:
+        blah = [row[:4] for row in csv.reader(f, delimiter='|')][1:]
+        s,i,b,x_error = zip(*blah)
+        print np.corrcoef(array(s).astype(np.float),array(x_error).astype(np.float))[0][1]
+        print np.corrcoef(array(i).astype(np.float),array(x_error).astype(np.float))[0][1]
+        print np.corrcoef(array(b).astype(np.float),array(x_error).astype(np.float))[0][1]
+
     with open('%s/%s' % (c.DATA_DIR,results_file)) as f:
         for row in csv.reader(f, delimiter='|'):
             s, i, b, x_error, x_total, rest, Uxf, x_error_indict, x_true, x_est, f = row
