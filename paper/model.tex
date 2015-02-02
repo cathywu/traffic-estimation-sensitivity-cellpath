@@ -20,6 +20,13 @@ With the exception of the noise model, we follow the same assumptions as in \cit
 This work models the assignment of individual vehicles to cell towers with an effective received signal strength (eRSS) based decision process.  This eRSS between a vehicle $v$ and a cell tower $t$ is calculated from the received power by introducing tower handoff dynamics as noise penalties;
 each vehicle gets assigned to the cell tower with the highest eRSS value at each time point in the simulation.
 
+The actual received signal strength is attenuated by two sources: the path loss $P_d$ is a function of the distance between the vehicle and the cell tower $d_{v-t}$ and path loss exponent $\gamma$, while 
+interference, multipath effects, and other RF noise are wrapped up into a uniformly distributed random penalty $P_{int}$.
+
+The dynamics of the tower handoff, $P_{handoff}$, are modelled using two parameters.  $P_{hyst}$ represents hysteresis in the system by boosting the eRSS of the currently associated tower, biasing individual vehicles against switching towers.  $P_{load}$ represents the load balancing efforts to distribute usage across the cell network, adding an eRSS penalty to heavily loaded towers proportional to $N_t$, the number of other vehicles already connected to tower $t$.  
+
+The eRSS can then be calculated as a function of the parameter vector $\phi = \{$interference, hysteresis, load balancing$\} = \{\alpha/\gamma, \beta/\gamma, \xi/\gamma\}$ over which we conduct our sensitivity analysis, evaluating the relative impacts of handoff dynamics in the presence of RF noise on route flow estimation.
+
 \begin{eqnarray}
   eRSS_{v-t} & = & \left( \frac{P_{RX_v}}{P_{TX_t}} \right)_{dB} 
                    + P_{handoff_{v-t}} \\
@@ -32,15 +39,6 @@ each vehicle gets assigned to the cell tower with the highest eRSS value at each
   \end{dcases} \\
   P_{load_t} & = & -\xi \cdot N_{t}.
 \end{eqnarray}
-
-In this equation, the actual received signal strength is attenuated by two sources: the path loss $P_d$ 
-is a function of the distance between the vehicle and the cell tower $d_{v-t}$ and path loss exponent $\gamma$, while 
-interference, multipath effects, and other RF noise are wrapped up into a uniformly distributed random penalty $P_{int}$.
-
-The dynamics of the tower handoff, $P_{handoff}$, are modelled using two parameters.  $P_{hyst}$ represents an amount of hysteresis in the system by boosting the eRSS of the currently associated tower, biasing individual vehicles against switching towers.
-$P_{load}$ represents the load balancing efforts to distribute usage across the cell network, adding an eRSS penalty to heavily loaded towers.
-
-where $N_t$ is the number of other vehicles already connected to tower $t$.  The four parameters $\{\gamma, \alpha, \beta, \xi\}$ can be scaled by the first to get our final parameter vector $\phi = \{a, b, c\} = \{\alpha/\gamma, \beta/\gamma, \xi/\gamma\}$ over which we conduct our sensitivity analysis, evaluating the relative impacts of hysteresis and load balancing in the presence of RF noise on route flow estimation.
 
 \subsection{Limitations}
   
