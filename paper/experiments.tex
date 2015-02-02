@@ -3,25 +3,29 @@
 \section{Experiments and numerical results}
 
 \subsection{Experimental setup}
+\begin{comment}
 \begin{figure}[h!]
   \centering
     \includegraphics[width=0.47\textwidth]{figures/small_map_half.jpeg}
   \caption{\footnotesize{Benchmark example network based off of the Highway network of the I-210 highway corridor in L.A. county (top, from Google Maps); Network with 80 sampled cells, with a higher concentration of cells near downtown (bottom). A random path from is shown in red with the closest cell towers.}}
   \label{fig:small-network}
 \end{figure}
+\end{comment}
 
-We consider a medium sized network based off of the I-210 highway corridor in Los Angeles, CA (see Figure \ref{fig:small-network}) in the following scenarios, where $N$ indicates the number of uniformly sampled cellular tower positions. 
+We consider a medium sized network based off of the I-210 highway corridor in Los Angeles, CA in the following scenarios, where $N$ indicates the number of uniformly sampled cellular tower positions. 
 \begin{itemize}
-\item \textit{Urban sprawl} ($N=300$): We emulate a city network where the density of cell towers is sufficient for recovering route flow in the noiseless setting.
-\item \textit{City Center} ($N=375$): We emulate a popular commercial district with a very dense sampling.
+\item \textit{Urban Sprawl (US)} ($N=300$): We emulate a city network where the density of cell towers is sufficient for recovering route flow in the noiseless setting.
+\item \textit{City Center (CC)} ($N=375$): We emulate a popular commercial district with a very dense sampling.
 \end{itemize}
-In each of the scenarios, we first compute a feasible route flow $x$ for the user equilibrium solution of the network. Treating $x$ as our sampling distribution, we issue 10,000 vehicles and collect the cellpath flow following the noise model described in Section \ref{sec:system-model}. We fix the parameters $\alpha\in\set{0,0.05,0.1}, \beta=\set{0, 0.05, 0.1, 0.2, 0.3},\xi=\set{0, .0004, .0008, .0012, .002}$. For each configuration, we use the projected first-order method solver in \cite{Wu2015} to compute $x_{est}$. We evaluate on the metric $\norm{x-x_{est}}_1/\norm{x}_1$, which corresponds to the percent route flow error.
+In each of the scenarios, we first compute a feasible route flow $x$ for the user equilibrium solution of the network. Treating $x$ as our sampling distribution, we issue 10,000 vehicles and collect the cellpath flow following the noise model described in Sec.~\ref{sec:handoff-model} across a range of parameter values $\phi$. 
+%We fix the parameters $a\in\set{0,0.05,0.1}, b=\set{0, 0.05, 0.1, 0.2, 0.3},c=\set{0, .0004, .0008, .0012, .002}$. 
+For each configuration, we use the projected first-order method solver in \cite{Wu2015} to compute $\hat x$. We evaluate on the metric $\norm{x-\hat x}_1/\norm{x}_1$, which corresponds to the percent route flow error.
 
 \subsection{Preliminary results}
 
-We present preliminary numerical results in Figure \ref{fig:results1} (omitting the denser experiment due to space limitations). In both experiments, there is a strong positive correlation ($R=0.78$ and $R=0.74$, respectively) between the load balancing gain and percent error. In the first experiment, the hysteresis margin gain causes an interesting change in route flow error, first increasing then decreasing, in the presence of other types of noise. We suspect the decrease in percent error is a side effect of the delay in switching cell towers when a vehicle moves by decreasing the chance of connecting to an incorrect tower. In the denser experiment, the route flow error is much more sensitive to the hysteresis margin gain, which can be explained by switching delays resulting in entirely missed cells, as the vehicle traverses its trajectory.
+We present preliminary numerical results on the US experiment in Fig.~\ref{fig:results1} (more detailed slices as well as results from the CC experiment have been omitted due to space limitations). In both experiments, there is a strong positive correlation ($R=0.78$ and $R=0.74$, respectively) between the load balancing gain and flow error, caused by unknown cell paths due to reassigned cell towers. Similarly, there is a positive correlation between hysteresis and flow error as switching delays cause vehicles to skip cell tower regions along their trajectories.  This is more prominent in the denser CC experiment; in the US experiment, though, increasing hysteresis induces a dip in the flow error in the presence of other types of noise. This dip is caused by limiting jumps between towers near the borders of Voronoi regions. 
 
-\begin{figure}[h!]
+\begin{figure}[ht]
   \centering
     \includegraphics[width=0.47\textwidth]{figures/results_300_hysteresis.png}
   \caption{\footnotesize{This plot show the initial findings for $N=300$. In general, the percent route flow error increases as the interference increases. The percent route flow error first increase then decreases as the hysteresis margin is increased. The load balancing parameter indicates positive correlation with percent route flow error.}}
