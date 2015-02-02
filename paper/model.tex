@@ -1,6 +1,7 @@
 %!TEX root = main.tex
 
-\subsection{System model}
+\section{System model for handoff noise}
+\label{sec:system-model}
 This work models the assignment of individual vehicles to cell towers with an effective received signal strength (eRSS) based decision process.  This eRSS between a vehicle $v$ and a cell tower $t$ is calculated from the received power by introducing tower handoff dynamics as noise penalties;
 each vehicle gets assigned to the cell tower with the highest eRSS value at each time point in the simulation.
 All towers are assumed to output with the same transmit power, so eRSS can be calculated in dB as: \begin{eqnarray}

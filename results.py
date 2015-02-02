@@ -51,11 +51,12 @@ def plot_results_wireframe(ax,xs,ys,zs, x_label='X label', y_label='Y label',
     ax.set_ylabel(y_label)
     ax.set_zlabel(z_label)
     # ax.legend()
+    ipdb.set_trace()
 
 if __name__ == "__main__":
     results_file = "results_4253648295_300towers.txt"
     # results_file = "results.txt"
-    results_file = 'results_4253648295_300towers_take2.txt'
+    results_file = 'results_4253648295_375towers_take2.txt'
 
     spread_results = {}
     # with open('%s/%s' % (c.DATA_DIR,results_file)) as f:
@@ -90,19 +91,20 @@ if __name__ == "__main__":
 
     # Plot a layer for each spread level
     fig = plt.figure()
-    plt1 = fig.add_subplot(1,2,1,projection='3d')
-    plt2 = fig.add_subplot(1,2,2,projection='3d')
+    plt1 = fig.add_subplot(1,1,1,projection='3d')
+    # plt2 = fig.add_subplot(1,2,2,projection='3d')
     for (k,c) in zip(spread_order,colors):
         v = spread_results[k]
         xs,ys,z1s,z2s = zip(*[(x.inertia,x.balancing,x.x_flow_error,
                                x.x_error_indict) for x in v])
         # ax = fig.gca(projection='3d')
-        plot_results_wireframe(plt1,xs,ys,z1s, x_label='Inertia', y_label='Balancing',
-                     z_label='% flow error', plot_label='Spread = %s' % k, c=c)
-        plot_results_wireframe(plt2,xs,ys,z2s, x_label='Inertia', y_label='Balancing',
-                               z_label='% dist error', plot_label='Spread = %s' % k, c=c)
+        plot_results_wireframe(plt1,xs,ys,z1s, x_label='Hysteresis', y_label='Load balancing',
+                     z_label='% flow error', plot_label='Interference = %s' % k, c=c)
+        # plot_results_wireframe(plt2,xs,ys,z2s, x_label='Hysteresis', y_label='Load balancing',
+        #                        z_label='% dist error', plot_label='Interference = %s' % k, c=c)
         plt.hold(True)
     plt.legend()
+    plt.title('% Route flow error under handoff noise model')
 
     plt.show()
     ipdb.set_trace()

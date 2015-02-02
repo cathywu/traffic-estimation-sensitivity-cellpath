@@ -246,6 +246,7 @@ def experiment(m=2,fname=None):
                                          np.array_str(x_est,max_line_width=np.Inf),
                                          np.array_str(f,max_line_width=np.Inf))
             fres.write('%s\n' % write_out)
+            ipdb.set_trace()
 
     ipdb.set_trace()
     # return output_control, outputs
@@ -262,5 +263,5 @@ if __name__ == "__main__":
     print "Random seed:", myseed
     np.random.seed(myseed)
     random.seed(myseed)
-    # experiment(m=10,fname='temp.pkl')
-    experiment(m=10)
+    experiment(m=10,fname='temp.pkl')
+    # experiment(m=10)
