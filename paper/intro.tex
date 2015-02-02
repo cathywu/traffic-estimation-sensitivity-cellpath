@@ -1,4 +1,14 @@
 %!TEX root = main.tex
 
 \section{Introduction}
-In this work, we study the noise sensitivity of the state-of-the-art for route flow estimation for mobility cyber-physical systems (CPS). Route flow estimation on road networks is a critical problem for mobility CPS, as any prediction and control applications require accurate and reliable estimates of the state of the road network. Previous work has demonstrated the promise of using cellular towers as sensor inputs to a convex optimization formulation of the problem, along with a projected first-order method that scales well to large city-scale networks \cite{Wu2015}. However, the work uses entirely synthetic data which assumes that vehicles are connected to the closest cell tower throughout their trajectories (i.e. voronoi partitions). In
+In this work, we study the noise sensitivity of the state-of-the-art for route flow estimation for mobility cyber-physical systems (CPS). Route flow estimation on road networks is a critical problem for mobility CPS, as any real-time prediction and control applications require accurate and reliable estimates of the state of the road network. Previous work has demonstrated the promise of using area-based sensors such as cellular towers as inputs to a convex optimization formulation of the problem, along with a projected first-order method that scales well to large city-scale networks \cite{Wu2015}. However, the numerical results are based off of entirely synthetic data, which makes the strong but common assumption that vehicles are connected to the closest cell tower throughout their trajectory (i.e. voronoi tessellations) \cite{Voronoi1908}. The real world is seldom so kind.
+
+We extend upon the previous work by analyzing the sensitivity of the estimation procedure to structured noise. In particular, we consider noise from a generative model based off of a handoff model for cellular base stations, which .
+ 
+
+\subsection{Motivation and related works}
+
+\subsection{Route flow estimation problem}
+
+(include Jerome’s diagram here)
+

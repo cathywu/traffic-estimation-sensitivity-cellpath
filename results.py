@@ -55,33 +55,33 @@ def plot_results_wireframe(ax,xs,ys,zs, x_label='X label', y_label='Y label',
 if __name__ == "__main__":
     results_file = "results_4253648295_300towers.txt"
     # results_file = "results.txt"
+    results_file = 'results_4253648295_300towers_take2.txt'
 
     spread_results = {}
-    with open('%s/%s' % (c.DATA_DIR,results_file)) as f:
-        for row in csv.reader(f, delimiter=','):
-            s, i, b, x_error, x_total, rest, Uxf = row
-            if s == 'spread':
-                continue
-            r = Result(s, i, b, x_error, x_total, rest, Uxf)
-            if s in spread_results:
-                spread_results[s].append(r)
-            else:
-                spread_results[s] = [r]
-
-    # FOR NEW EXPERIMENTS (new data format)
     # with open('%s/%s' % (c.DATA_DIR,results_file)) as f:
-    #     for row in csv.reader(f, delimiter='|'):
-    #         print row
-    #         s, i, b, x_error, x_total, rest, Uxf, x_error_indict, x_true, x_est, f = row
+    #     for row in csv.reader(f, delimiter=','):
+    #         s, i, b, x_error, x_total, rest, Uxf = row
     #         if s == 'spread':
     #             continue
-    #         r = Result(s, i, b, x_error, x_total, rest, Uxf,
-    #                    x_error_indict=x_error_indict, x_true=x_true,
-    #                    x_est=x_est, f=f)
+    #         r = Result(s, i, b, x_error, x_total, rest, Uxf)
     #         if s in spread_results:
     #             spread_results[s].append(r)
     #         else:
     #             spread_results[s] = [r]
+
+    # FOR NEW EXPERIMENTS (new data format)
+    with open('%s/%s' % (c.DATA_DIR,results_file)) as f:
+        for row in csv.reader(f, delimiter='|'):
+            s, i, b, x_error, x_total, rest, Uxf, x_error_indict, x_true, x_est, f = row
+            if s == 'spread':
+                continue
+            r = Result(s, i, b, x_error, x_total, rest, Uxf,
+                       x_error_indict=x_error_indict, x_true=x_true,
+                       x_est=x_est, f=f)
+            if s in spread_results:
+                spread_results[s].append(r)
+            else:
+                spread_results[s] = [r]
 
     mpl.rcParams['legend.fontsize'] = 10
 
@@ -90,21 +90,17 @@ if __name__ == "__main__":
 
     # Plot a layer for each spread level
     fig = plt.figure()
-    plt1 = fig.add_subplot(1,3,1,projection='3d')
-    plt2 = fig.add_subplot(1,3,2,projection='3d')
-    plt3 = fig.add_subplot(1,3,3,projection='3d')
+    plt1 = fig.add_subplot(1,2,1,projection='3d')
+    plt2 = fig.add_subplot(1,2,2,projection='3d')
     for (k,c) in zip(spread_order,colors):
         v = spread_results[k]
         xs,ys,z1s,z2s = zip(*[(x.inertia,x.balancing,x.x_flow_error,
-                               x.rest/x.x_total) for x in v])
-        z3s = [b-a for (a,b) in zip(z1s,z2s)]
+                               x.x_error_indict) for x in v])
         # ax = fig.gca(projection='3d')
         plot_results_wireframe(plt1,xs,ys,z1s, x_label='Inertia', y_label='Balancing',
                      z_label='% flow error', plot_label='Spread = %s' % k, c=c)
         plot_results_wireframe(plt2,xs,ys,z2s, x_label='Inertia', y_label='Balancing',
-                               z_label='% unassigned', plot_label='Spread = %s' % k, c=c)
-        plot_results_wireframe(plt3,xs,ys,z3s, x_label='Inertia', y_label='Balancing',
-                               z_label='% in dictionary error', plot_label='Spread = %s' % k, c=c)
+                               z_label='% dist error', plot_label='Spread = %s' % k, c=c)
         plt.hold(True)
     plt.legend()
 
