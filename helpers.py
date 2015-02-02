@@ -126,7 +126,7 @@ def update_args(args, params):
     return args
 
 def experiment_LS(args, test=None, data=None, full=True, L=True, OD=True,
-                  CP=True, LP=True, eq='CP', init=True, noisy=False):
+                  CP=True, LP=True, eq='CP', init=True, noisy=False, save_x=False):
     """
     Least squares experiment
     :param test:
@@ -162,12 +162,14 @@ def experiment_LS(args, test=None, data=None, full=True, L=True, OD=True,
         iters, times, states = [0],[0],[x0]
         x_last, error, output = LS_postprocess(states,x0,A,b,x_true,scaling=flow,
                                                block_sizes=block_sizes,N=N,
-                                               output=output,is_x=True)
+                                               output=output,is_x=True,
+                                               save_x=save_x)
     else:
         iters, times, states = LS_solve(A,b,x0,N,block_sizes,args)
         x_last, error, output = LS_postprocess(states,x0,A,b,x_true,scaling=flow,
                                                block_sizes=block_sizes,N=N,
-                                               output=output)
+                                               output=output,
+                                               save_x=save_x)
 
     # LS_plot(x_last, times, error)
     output['duration'] = np.sum(times)
@@ -228,7 +230,7 @@ def LS_solve(A,b,x0,N,block_sizes,args):
     return iters, times, states
 
 def LS_postprocess(states, x0, A, b, x_true, scaling=None, block_sizes=None,
-                   output=None, N=None, is_x=False):
+                   output=None, N=None, is_x=False, rest=0, save_x=False):
     if scaling is None:
         scaling = np.ones(x_true.shape)
     if output is None:
@@ -288,6 +290,10 @@ def LS_postprocess(states, x0, A, b, x_true, scaling=None, block_sizes=None,
     start_dist_from_true = np.max(scaling * np.abs(x_true-x0))
     logging.debug('max|f * (x_init-x_true)|: %.5f' % start_dist_from_true)
     output['max|f * (x_init-x_true)|'] = start_dist_from_true
+
+    if save_x is True:
+        output['x_est'] = x_last
+        output['x_true'] = x_true
 
     return x_last, error, output
 

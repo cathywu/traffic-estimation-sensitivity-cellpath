@@ -107,12 +107,13 @@ def scenario(params=None,m=2):
 
     return args, data, graph
 
-def solve(args, data, noisy=False):
+def solve(args, data, noisy=False, save_x=False):
     eq = 'CP' if args.use_CP else 'OD'
     if args.solver == 'LS':
         output = experiment_LS(args, full=args.all_links, init=args.init,
                                L=args.use_L, OD=args.use_OD, CP=args.use_CP,
-                               LP=args.use_LP, eq=eq, data=data, noisy=noisy)
+                               LP=args.use_LP, eq=eq, data=data, noisy=noisy,
+                               save_x=save_x)
     elif args.solver == 'LSQR':
         output = experiment_LSQR(args, full=args.all_links, L=args.use_L,
                                  OD=args.use_OD, CP=args.use_CP, LP=args.use_LP,
@@ -189,7 +190,7 @@ def experiment(m=2,fname=None):
     num_delays = 10
     spreadlist = [0, 0.05, 0.1]
     inertialist = [0, 0.05, 0.1, 0.2, 0.3]
-    balancinglist = [0, 0.0005, 0.001, 0.002, 0.003]
+    balancinglist = [0, .0004, .0008, .0012, .002] # [0, 0.0005, 0.001, 0.002, 0.003]
 
     # spreadlist = [0]
     # inertialist = [0]
@@ -210,13 +211,20 @@ def experiment(m=2,fname=None):
     data['b'] = data['A'].dot(data['x_true'])
     data['d'] = data['T'].dot(data['x_true'])
 
+    delimiter = "|"
+    captions = ['spread', 'inertia', 'balancing', 'x flow error', 'x total',
+                'rest', 'Ux-f', 'x flow error in dict', 'x_true', 'x_est', 'f']
+    formats = ['%0.8f', '%0.8f', '%0.8f', '%0.8f', '%0.8f', '%0.8f', '%0.8f',
+               '%0.8f', '%s', '%s', '%s']
+    format_string = delimiter.join(formats)
+
     with open('%s/%s' % (c.DATA_DIR,'results.txt'), 'w') as fres:
-        fres.write('spread, inertia, balancing, x flow error, x total, rest, ||Ux-f||\n')
+        fres.write('%s\n' % delimiter.join(captions))
         for f,rest,(s,i,b) in HN_data:
             # Replace f with new noisy f
             data['f'] = array(f)
             # ipdb.set_trace()
-            output = solve(args, data, noisy=True)
+            output = solve(args, data, noisy=True, save_x=True)
             outputs.append((output,f,rest,(s,i,b)))
             x_error = output['percent flow allocated incorrectly'][-1]
             logging.info('Params: (%0.3f,%0.3f,%0.3f)' % (s,i,b))
@@ -224,8 +232,21 @@ def experiment(m=2,fname=None):
             logging.info('Rest: %0.4f' % rest)
             U,f,x = data['U'], data['f'], data['x_true']
             Uxf = la.norm(U.dot(x)-f)
-            fres.write("%0.8f, %0.8f, %0.8f, %0.8f, %0.8f, %0.8f, %0.8f\n" % \
-                       (s, i, b, x_error, np.sum(data['x_true']), rest, Uxf))
+            x_total = np.sum(data['x_true'])
+
+            # scaled % route flow error
+            x_est = output['x_est']
+            x_true = output['x_true']
+            indict = 1 - rest / x_total
+            x_error_indict = np.sum(indict * x_true - x_est) / np.sum(indict * x_true)
+
+            write_out = format_string % (s, i, b, x_error, x_total, rest, Uxf,
+                                         x_error_indict,
+                                         np.array_str(x_true,max_line_width=np.Inf),
+                                         np.array_str(x_est,max_line_width=np.Inf),
+                                         np.array_str(f,max_line_width=np.Inf))
+            fres.write('%s\n' % write_out)
+
     ipdb.set_trace()
     # return output_control, outputs
     return outputs
@@ -241,5 +262,5 @@ if __name__ == "__main__":
     print "Random seed:", myseed
     np.random.seed(myseed)
     random.seed(myseed)
-    # experiment(m=10,fname='temp.pkl')
-    experiment(m=10)
+    experiment(m=10,fname='temp.pkl')
+    # experiment(m=10)

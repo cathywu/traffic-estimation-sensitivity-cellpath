@@ -6,9 +6,11 @@ from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 
 import config as c
+from helpers import array
 
 class Result:
-    def __init__(self,s,i,b,x_error,x_total,rest,Uxf):
+    def __init__(self,s,i,b,x_error,x_total,rest,Uxf,x_error_indict=None,
+                 x_true=None,x_est=None,f=None):
         self.spread=float(s)
         self.inertia=float(i)
         self.balancing=float(b)
@@ -16,6 +18,10 @@ class Result:
         self.x_total=float(x_total)
         self.rest=float(rest)
         self.Uxf=float(Uxf)
+        self.x_error_indict=float(x_error_indict)
+        self.x_true=array(np.fromstring(x_true[1:-1], sep=' '))
+        self.x_est=array(np.fromstring(x_est[1:-1], sep=' '))
+        self.f=array(np.fromstring(f[1:-1], sep=' '))
 
 def randrange(n, vmin, vmax):
     return (vmax-vmin)*np.random.rand(n) + vmin
@@ -48,6 +54,7 @@ def plot_results_wireframe(ax,xs,ys,zs, x_label='X label', y_label='Y label',
 
 if __name__ == "__main__":
     results_file = "results_4253648295_300towers.txt"
+    # results_file = "results.txt"
 
     spread_results = {}
     with open('%s/%s' % (c.DATA_DIR,results_file)) as f:
@@ -55,10 +62,26 @@ if __name__ == "__main__":
             s, i, b, x_error, x_total, rest, Uxf = row
             if s == 'spread':
                 continue
+            r = Result(s, i, b, x_error, x_total, rest, Uxf)
             if s in spread_results:
-                spread_results[s].append(Result(s, i, b, x_error, x_total, rest, Uxf))
+                spread_results[s].append(r)
             else:
-                spread_results[s] = [Result(s, i, b, x_error, x_total, rest, Uxf)]
+                spread_results[s] = [r]
+
+    # FOR NEW EXPERIMENTS (new data format)
+    # with open('%s/%s' % (c.DATA_DIR,results_file)) as f:
+    #     for row in csv.reader(f, delimiter='|'):
+    #         print row
+    #         s, i, b, x_error, x_total, rest, Uxf, x_error_indict, x_true, x_est, f = row
+    #         if s == 'spread':
+    #             continue
+    #         r = Result(s, i, b, x_error, x_total, rest, Uxf,
+    #                    x_error_indict=x_error_indict, x_true=x_true,
+    #                    x_est=x_est, f=f)
+    #         if s in spread_results:
+    #             spread_results[s].append(r)
+    #         else:
+    #             spread_results[s] = [r]
 
     mpl.rcParams['legend.fontsize'] = 10
 
